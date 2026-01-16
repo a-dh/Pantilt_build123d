@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pantilt-build123d"
+version = "0.1.0"
+description = "Pan-tilt geometry and modeling using build123d"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Albert den Haan" }
+]
+
+dependencies = [
+    "build123d>=0.4.0",
+    "ocp_vscode"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "types-setuptools"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I"]
+src = ["src"]
+
+[tool.mypy]
+python_version = "3.9"
+packages = ["pantilt_build123d"]
+strict = false

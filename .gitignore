@@ -1,0 +1,48 @@
+# --- Python cache & bytecode ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.pyd
+*.tmp
+
+# --- Virtual environments ---
+.venv/
+env/
+venv/
+ENV/
+
+# --- Editors & IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Build / packaging artifacts ---
+dist/
+build/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Test & coverage artifacts ---
+.coverage
+htmlcov/
+.junit/
+.pytest_cache/
+
+# --- CAD exports ---
+*.step
+*.stp
+*.iges
+*.igs
+*.stl
+*.brep
+
+# --- Logs ---
+*.log
+
+# --- Misc machine-local files ---
+.DS_Store
+Thumbs.db
