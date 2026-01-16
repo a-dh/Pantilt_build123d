@@ -64,11 +64,7 @@ def build_servo():
         teeth.append(tooth)
     spline = Compound(teeth)
 
-    # --- Horn boss (centered on shaft) ---
-    horn = Cylinder(radius=horn_diameter/2, height=horn_height)
-    horn = Pos(
-        (servo_length/2 - cover_length/2), 0, servo_height + cover_height + shaft_height
-    ) * horn
+
 
     # --- Screw hole through shaft/horn ---
     screw_hole = Cylinder(radius=2/2, height=shaft_height + cover_height + horn_height + 1)
@@ -79,6 +75,10 @@ def build_servo():
     # --- SG90-style side ears ---
     ear_length = servo_length - 2*ear_hole_offset
     ear = Box(ear_length, ear_width, ear_thickness)
+    # Ear hole
+    hole_pos = ear_length/2 - ear_hole_offset
+    hole = Pos(hole_pos, 0, 0) * Cylinder(radius=ear_hole_dia/2, height=ear_thickness+0.1)
+    ear = ear - hole
 
     # Left ear (+Y)
     left_ear = Pos(0, servo_width/2 + ear_width/2, ear_height_pos) * ear
@@ -86,14 +86,9 @@ def build_servo():
     # Right ear (-Y)
     right_ear = Pos(0, -(servo_width/2 + ear_width/2), ear_height_pos) * ear
 
-    # Ear holes
-    hole_pos = ear_length/2 - ear_hole_offset
-    left_hole = Pos(hole_pos, servo_width/2 + ear_width/2, ear_height_pos + ear_thickness/2) * Cylinder(radius=ear_hole_dia/2, height=ear_thickness+0.1)
-    right_hole = Pos(hole_pos, -(servo_width/2 + ear_width/2), ear_height_pos + ear_thickness/2) * Cylinder(radius=ear_hole_dia/2, height=ear_thickness+0.1)
-
     # --- Assemble everything ---
-    servo = body + cover + shaft_base + spline + horn + left_ear + right_ear
-    servo = servo - screw_hole - left_hole - right_hole
+    servo = body + cover + shaft_base + spline + left_ear + right_ear
+    servo = servo - screw_hole 
 
     return servo
 
