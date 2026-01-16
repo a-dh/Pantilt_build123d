@@ -46,3 +46,9 @@ htmlcov/
 # --- Misc machine-local files ---
 .DS_Store
 Thumbs.db
+
+# --- Testing outputs and scratch space ---
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
