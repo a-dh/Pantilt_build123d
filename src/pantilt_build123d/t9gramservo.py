@@ -33,9 +33,16 @@ ear_hole_offset = 4    # mm from front/back edges
 # Build function
 # ------------------------------
 
-def build_servo():
+def build_servo(color=None):
+
+    if color is None:
+        real_color = Color("lightgray")
+    else:
+        real_color = color
+
     # --- Main servo body ---
     body = Box(servo_length, servo_width, servo_height)
+    body.color = real_color
 
     # --- Shaft base cylinder ---
     shaft_base = Cylinder(
