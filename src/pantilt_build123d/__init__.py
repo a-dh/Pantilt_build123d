@@ -1,4 +1,4 @@
-from pantilt_build123d.t9gramservo import build_servo
+from pantilt_build123d.sg9_servo import build_servo
 
 """
 pantilt_build123d

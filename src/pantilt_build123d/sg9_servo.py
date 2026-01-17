@@ -6,13 +6,13 @@ from ocp_vscode import show
 # ------------------------------
 
 # Servo main body
-servo_length = 40      # mm (X)
-servo_width  = 20      # mm (Y)
-servo_height = 38      # mm (Z)
+servo_length = 22      # mm (X)
+servo_width  = 12      # mm (Y)
+servo_height = 23      # mm (Z)
 
 # Gearbox cover
 cover_length  = servo_width     # mm (X)
-cover_height  = 10     # mm (Z above body)
+cover_height  = 5     # mm (Z above body)
 
 # Output shaft
 shaft_diameter = 5     # mm
@@ -25,7 +25,7 @@ horn_height    = 2     # mm height
 # Side ears (SG90 style)
 ear_thickness   = 2    # mm (Z)
 ear_width       = servo_width    # mm (extending along Y)
-ear_height_pos  = 12   # mm from base (Z)
+ear_height_pos  = 17   # mm from base (Z) to center of tab
 ear_hole_dia    = 2    # mm
 ear_hole_offset = 4    # mm from front/back edges
 
@@ -81,13 +81,17 @@ def build_servo(color=None):
     hole = Pos(hole_pos, 0, 0) * Cylinder(radius=ear_hole_dia/2, height=ear_thickness+0.1)
     ear = ear - hole
 
+    # find the position to place ears
+    bottom_plane = Plane(body.faces().sort_by(Axis.Z)[0])
+
+
     # Left ear (+X)
-    left_ear = Pos(servo_length/2 + ear_length/2, 0, ear_height_pos) * ear
+    left_ear = bottom_plane * Pos(servo_length/2 + ear_length/2, 0, -ear_height_pos) * ear
 
     # Right ear (-X)
-    right_ear = Pos(-(servo_length/2 + ear_length/2), 0, ear_height_pos) * ear
+    right_ear = bottom_plane * Pos(-(servo_length/2 + ear_length/2), 0, -ear_height_pos) * ear
 
-    final_gear_cover_height = 10 # mm
+    final_gear_cover_height = cover_height # mm
     final_gear_cover = Cylinder(
         radius=servo_width/2,
         height=final_gear_cover_height
@@ -95,7 +99,7 @@ def build_servo(color=None):
     final_gear_cover = Pos(servo_length/2 - servo_width/2, 0, servo_height/2 + final_gear_cover_height/2) * final_gear_cover
     penultimate_gear_cover = Cylinder(
         radius=servo_width/2/2,
-        height=final_gear_cover_height - 2
+        height=final_gear_cover_height
     )
     penultimate_gear_cover = Pos(servo_length/2 - servo_width, 0, servo_height/2 + final_gear_cover_height/2) * penultimate_gear_cover
 
