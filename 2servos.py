@@ -1,4 +1,4 @@
-from pantilt_build123d import build_servo
+from pantilt_build123d.sg9_servo import SG9Servo
 from build123d import Location
 from build123d.geometry import (
     Axis,
@@ -9,11 +9,16 @@ from ocp_vscode.config import Camera
 from ocp_vscode import show
 
 if __name__ == "__main__":
-    servo1 = build_servo(color=Color("blue")) # pan servo
-
-    servo2 = build_servo(color=Color("lightblue")) # tilt servo
+    servo1 = SG9Servo(color=Color("blue")) # pan servo
+    top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+    
+    servo2 = SG9Servo(color=Color("lightblue")) # tilt servo
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = servo2.moved(Location((25, 0, 50))) # Move up to tilting position
+    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
+    servo2 = servo2.moved(Location((servo2.width/2 +
+                                    servo1.gear_cover_clearance_radius + 2,
+                                        0,
+                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
 
     show([servo1, servo2],
          reset_camera=Camera.KEEP)

@@ -1,125 +1,88 @@
 from build123d import *
-from ocp_vscode import show
 
-# ------------------------------
-# Parameters
-# ------------------------------
+class SG9Servo(Part):
+    def __init__(
+        self,
+        servo_length=22,
+        servo_width=12,
+        servo_height=23,
+        cover_length=12,
+        cover_height=5,
+        shaft_diameter=5,
+        shaft_height=10,
+        spline_teeth=25,
+        spline_depth=0.4,
+        ear_thickness=2,
+        ear_height_pos=17,
+        ear_hole_dia=2,
+        ear_hole_offset=4,
+        color=Color("lightgray"),
+        **kwargs
+    ):
+        self.width = servo_width
+        self.body_height = servo_height # do not interfere with Part.height
+        self.length = servo_length
+        self.gear_cover_height = cover_height
+        self.gear_cover_clearance_radius = 3 * servo_width / 4
 
-# Servo main body
-servo_length = 22      # mm (X)
-servo_width  = 12      # mm (Y)
-servo_height = 23      # mm (Z)
+        # --- Body ---
+        body = Box(servo_length, servo_width, servo_height)
 
-# Gearbox cover
-cover_length  = servo_width     # mm (X)
-cover_height  = 5     # mm (Z above body)
-
-# Output shaft
-shaft_diameter = 5     # mm
-shaft_height   = 10    # mm
-spline_teeth   = 25    # teeth count
-spline_depth   = 0.4   # radial height of teeth
-horn_diameter  = 3     # mm boss for servo horn
-horn_height    = 2     # mm height
-
-# Side ears (SG90 style)
-ear_thickness   = 2    # mm (Z)
-ear_width       = servo_width    # mm (extending along Y)
-ear_height_pos  = 17   # mm from base (Z) to center of tab
-ear_hole_dia    = 2    # mm
-ear_hole_offset = 4    # mm from front/back edges
-
-# ------------------------------
-# Build function
-# ------------------------------
-
-def build_servo(color=None):
-
-    if color is None:
-        real_color = Color("lightgray")
-    else:
-        real_color = color
-
-    # --- Main servo body ---
-    body = Box(servo_length, servo_width, servo_height)
-    body.color = real_color
-
-    # --- Shaft base cylinder ---
-    shaft_base = Cylinder(
-        radius=shaft_diameter/2,
-        height=shaft_height
-    )
-    shaft_base = Pos(
-        (servo_length/2 - cover_length/2), 0, servo_height - shaft_height/2
-    ) * shaft_base
-
-    # --- Spline teeth (radial around shaft) ---
-    teeth = []
-    for i in range(spline_teeth):
-        angle = i * (360 / spline_teeth)
-        # Tooth as small cylinder offset radially
-        tooth = Cylinder(radius=spline_depth, height=shaft_height/2)
-        tooth = Pos(
-            (servo_length/2 - cover_length/2), 0, servo_height - shaft_height/4
-        ) * Rot(0, 0, angle) * Pos(shaft_diameter/2, 0, 0) * tooth
-        teeth.append(tooth)
-    spline = Compound(teeth)
+        # --- Shaft and Splines ---
+        shaft_center_x = servo_length / 2 - cover_length / 2
+        shaft_base = Cylinder(radius=shaft_diameter / 2, height=shaft_height)
+        shaft_base = Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * shaft_base
 
 
+        # --- Use the Top Face of the Shaft as a Reference ---
+        # Select the face with the highest Z coordinate
+        shaft_top_face = shaft_base.faces().sort_by(Axis.Z)[-1]
+        shaft_top_plane = Plane(shaft_top_face)
 
-    # --- Screw hole through shaft/horn ---
-    screw_hole = Cylinder(radius=2/2, height=shaft_height + cover_height + horn_height + 1)
-    screw_hole = Pos(
-        (servo_length/2 - cover_length/2), 0, servo_height
-    ) * screw_hole
+        # Create the hole relative to this plane (Z=0 on the plane is the face surface)
+        screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height)
 
-    # --- SG90-style side ears ---
-    ear_length = 2*ear_hole_offset  # this seems short
-    ear = Box(ear_length, ear_width, ear_thickness)
-    # Ear hole
-    hole_pos = ear_length/2 - ear_hole_offset
-    hole = Pos(hole_pos, 0, 0) * Cylinder(radius=ear_hole_dia/2, height=ear_thickness+0.1)
-    ear = ear - hole
+        teeth_list = []
+        for i in range(spline_teeth):
+            angle = i * (360 / spline_teeth)
+            tooth = Cylinder(radius=spline_depth, height=shaft_height / 2)
+            tooth = (
+                Pos(shaft_center_x, 0, servo_height / 2 + 3 * shaft_height / 4)
+                * Rot(0, 0, angle)
+                * Pos(shaft_diameter / 2, 0, 0)
+                * tooth
+            )
+            teeth_list.append(tooth)
+        spline = Compound(teeth_list)
 
-    # find the position to place ears
-    bottom_plane = Plane(body.faces().sort_by(Axis.Z)[0])
+        # --- Gear Covers ---
+        final_gear_cover = Cylinder(radius=servo_width / 2, height=cover_height)
+        final_gear_cover = Pos(shaft_center_x, 0, servo_height / 2 + cover_height / 2) * final_gear_cover
+        
+        penultimate_gear_cover = Cylinder(radius=servo_width / 4, height=cover_height)
+        penultimate_gear_cover = Pos(shaft_center_x - servo_width / 2, 0, servo_height / 2 + cover_height / 2) * penultimate_gear_cover
 
+        # --- Side Ears ---
+        ear_length = 2 * ear_hole_offset
+        ear_geom = Box(ear_length, servo_width, ear_thickness)
+        ear_geom -= Pos(ear_length / 2 - ear_hole_offset, 0, 0) * Cylinder(radius=ear_hole_dia / 2, height=ear_thickness + 1)
+        
+        # Position ears relative to the bottom of the body
+        z_pos = -servo_height / 2 + ear_height_pos
+        left_ear = Pos(servo_length / 2 + ear_length / 2, 0, z_pos) * ear_geom
+        right_ear = Pos(-(servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
 
-    # Left ear (+X)
-    left_ear = bottom_plane * Pos(servo_length/2 + ear_length/2, 0, -ear_height_pos) * ear
+        # --- Assembly and Finishing ---
+        servo_shape = body + shaft_base + spline + final_gear_cover + penultimate_gear_cover + left_ear + right_ear
+        servo_shape -= screw_hole
 
-    # Right ear (-X)
-    right_ear = bottom_plane * Pos(-(servo_length/2 + ear_length/2), 0, -ear_height_pos) * ear
-
-    final_gear_cover_height = cover_height # mm
-    final_gear_cover = Cylinder(
-        radius=servo_width/2,
-        height=final_gear_cover_height
-    )
-    final_gear_cover = Pos(servo_length/2 - servo_width/2, 0, servo_height/2 + final_gear_cover_height/2) * final_gear_cover
-    penultimate_gear_cover = Cylinder(
-        radius=servo_width/2/2,
-        height=final_gear_cover_height
-    )
-    penultimate_gear_cover = Pos(servo_length/2 - servo_width, 0, servo_height/2 + final_gear_cover_height/2) * penultimate_gear_cover
-
-    # --- Assemble everything ---
-    servo = body + shaft_base + spline + left_ear + right_ear + final_gear_cover + penultimate_gear_cover
-    servo = servo - screw_hole 
-
-    return servo
-
-# ------------------------------
-# Main
-# ------------------------------
+        # Initialize the Part with the constructed shape
+        super().__init__(servo_shape.wrapped, **kwargs)
+        self.color = color
+        # Define a helpful port for mounting horns
+        self.horn_mount = Location((shaft_center_x, 0, servo_height / 2 + shaft_height))
 
 if __name__ == "__main__":
-    model = build_servo()
-
-    # --- Display in VS Code ---
-    # assign colors per component
+    from ocp_vscode import show
+    model = SG9Servo()
     show(model)
-
-    # --- Optional: export STEP automatically ---
-    # model.export_step("9gram_servo.step")
-    # print("Exported 9gram_servo.step")
