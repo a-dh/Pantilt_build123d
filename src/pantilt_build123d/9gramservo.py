@@ -11,8 +11,8 @@ servo_width  = 20      # mm (Y)
 servo_height = 38      # mm (Z)
 
 # Gearbox cover
-cover_length  = 12     # mm (X)
-cover_height  = 3      # mm (Z above body)
+cover_length  = servo_width     # mm (X)
+cover_height  = 10     # mm (Z above body)
 
 # Output shaft
 shaft_diameter = 5     # mm
@@ -37,19 +37,13 @@ def build_servo():
     # --- Main servo body ---
     body = Box(servo_length, servo_width, servo_height)
 
-    # --- Gearbox cover ---
-    cover = Box(cover_length, servo_width, cover_height)
-    cover = Pos(
-        (servo_length/2 - cover_length/2), 0, servo_height
-    ) * cover
-
     # --- Shaft base cylinder ---
     shaft_base = Cylinder(
         radius=shaft_diameter/2,
         height=shaft_height
     )
     shaft_base = Pos(
-        (servo_length/2 - cover_length/2), 0, servo_height + cover_height
+        (servo_length/2 - cover_length/2), 0, servo_height - shaft_height/2
     ) * shaft_base
 
     # --- Spline teeth (radial around shaft) ---
@@ -59,7 +53,7 @@ def build_servo():
         # Tooth as small cylinder offset radially
         tooth = Cylinder(radius=spline_depth, height=shaft_height/2)
         tooth = Pos(
-            (servo_length/2 - cover_length/2), 0, servo_height + cover_height + shaft_height/4
+            (servo_length/2 - cover_length/2), 0, servo_height - shaft_height/4
         ) * Rot(0, 0, angle) * Pos(shaft_diameter/2, 0, 0) * tooth
         teeth.append(tooth)
     spline = Compound(teeth)
@@ -86,9 +80,20 @@ def build_servo():
     # Right ear (-X)
     right_ear = Pos(-(servo_length/2 + ear_length/2), 0, ear_height_pos) * ear
 
+    final_gear_cover_height = 10 # mm
+    final_gear_cover = Cylinder(
+        radius=servo_width/2,
+        height=final_gear_cover_height
+    )
+    final_gear_cover = Pos(servo_length/2 - servo_width/2, 0, servo_height/2 + final_gear_cover_height/2) * final_gear_cover
+    penultimate_gear_cover = Cylinder(
+        radius=servo_width/2/2,
+        height=final_gear_cover_height - 2
+    )
+    penultimate_gear_cover = Pos(servo_length/2 - servo_width, 0, servo_height/2 + final_gear_cover_height/2) * penultimate_gear_cover
 
     # --- Assemble everything ---
-    servo = body + cover + shaft_base + spline + left_ear + right_ear
+    servo = body + shaft_base + spline + left_ear + right_ear + final_gear_cover + penultimate_gear_cover
     servo = servo - screw_hole 
 
     return servo
