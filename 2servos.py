@@ -47,6 +47,12 @@ if __name__ == "__main__":
     pan_static_bearing = Cylinder(radius=plate_size / 2, height=2, align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_static_bearing.color = color=Color("green")
     pan_static_bearing = pan_static_bearing - body_to_cut
+    psb_bottom_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    mpoh_top_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
+    psb_translation_vector = mpoh_top_face.center() - psb_bottom_face.center()
+    psb_translation_vector.X = 0
+    psb_translation_vector.Y = 0
+    pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
 
     show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
          reset_camera=Camera.KEEP)
