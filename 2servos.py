@@ -1,8 +1,8 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from build123d import Location
+from build123d import Location, Box, Align
 from build123d.geometry import (
     Axis,
-    Color
+    Color,
 )
 from ocp_vscode.config import Camera
 
@@ -20,8 +20,12 @@ if __name__ == "__main__":
                                         0,
                                         servo1.gear_cover_height +0.25))) # Move out to avoid collision
     
-    faces = servo1.body.faces().filter_by(Axis.Z).sort_by(Axis.Z)
-    print(f"Servo 1 faces Z: {faces}")
+    body_faces = servo1.body.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+    plate_size = servo1.bounding_box().diagonal
+    mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
+                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
+    mounting_plate_on_host.color = Color("gray")
+    mounting_plate_on_host = mounting_plate_on_host.move(body_faces[-1].center_location)
 
-    show([servo1, servo2],
+    show([servo1, servo2, mounting_plate_on_host],
          reset_camera=Camera.KEEP)
