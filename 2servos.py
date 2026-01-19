@@ -15,10 +15,13 @@ if __name__ == "__main__":
     servo2 = SG9Servo(color=Color("lightblue")) # tilt servo
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.moved(Location((servo2.width/2 +
+    servo2 = servo2.move(Location((servo2.width/2 +
                                     servo1.gear_cover_clearance_radius + 2,
                                         0,
                                         servo1.gear_cover_height +0.25))) # Move out to avoid collision
+    
+    faces = servo1.body.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+    print(f"Servo 1 faces Z: {faces}")
 
     show([servo1, servo2],
          reset_camera=Camera.KEEP)

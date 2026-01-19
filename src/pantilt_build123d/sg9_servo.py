@@ -27,6 +27,7 @@ class SG9Servo(Part):
 
         # --- Body ---
         body = Box(servo_length, servo_width, servo_height)
+        self.body = body
 
         # --- Shaft and Splines ---
         shaft_center_x = servo_length / 2 - cover_length / 2
@@ -81,6 +82,9 @@ class SG9Servo(Part):
         self.color = color
         # Define a helpful port for mounting horns
         self.horn_mount = Location((shaft_center_x, 0, servo_height / 2 + shaft_height))
+        self.top_of_mount_face = left_ear.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+        self.bottom_of_mount_face = left_ear.faces().filter_by(Axis.Z, -1).sort_by(Axis.Z)[-1]
+        self.top_of_gear_cover_face = final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
 if __name__ == "__main__":
     from ocp_vscode import show
