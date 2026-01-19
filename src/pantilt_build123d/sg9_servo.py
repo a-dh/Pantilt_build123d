@@ -17,6 +17,8 @@ class SG9Servo(Part):
         ear_hole_dia=2,
         ear_hole_offset=4,
         color=Color("lightgray"),
+        left_mount=True,
+        right_mount=True,
         **kwargs
     ):
         self.width = servo_width
@@ -39,6 +41,9 @@ class SG9Servo(Part):
         # Select the face with the highest Z coordinate
         shaft_top_face = shaft_base.faces().sort_by(Axis.Z)[-1]
         shaft_top_plane = Plane(shaft_top_face)
+        
+        # Define a helpful refference point for mounting horns
+        self.horn_mount = Location((shaft_center_x, 0, servo_height / 2 + shaft_height))
 
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
         screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height)
@@ -68,10 +73,28 @@ class SG9Servo(Part):
         ear_geom = Box(ear_length, servo_width, ear_thickness)
         ear_geom -= Pos(ear_length / 2 - ear_hole_offset, 0, 0) * Cylinder(radius=ear_hole_dia / 2, height=ear_thickness + 1)
         
-        # Position ears relative to the bottom of the body
+        # Position ears relative to the bottom of the body and keep track of where they are for clients
         z_pos = -servo_height / 2 + ear_height_pos
-        left_ear = Pos(servo_length / 2 + ear_length / 2, 0, z_pos) * ear_geom
-        right_ear = Pos(-(servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
+        if left_mount:
+            left_ear = Pos(servo_length / 2 + ear_length / 2, 0, z_pos) * ear_geom
+            mount = left_ear
+        else:
+            left_ear = Part()
+            mount = None
+        if right_mount:
+            right_ear = Pos(-(servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
+            mount = right_ear
+        else:
+            right_ear = Part()
+            # not setting mount here to avoid overwriting left ear if both are present
+        if mount:
+            mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+            self.top_of_mount_face = mount_faces[-1]
+            self.bottom_of_mount_face = mount_faces[0]
+        else:
+            self.top_of_mount_face = None
+            self.bottom_of_mount_face = None
+        self.top_of_gear_cover_face = final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
         # --- Assembly and Finishing ---
         servo_shape = body + shaft_base + spline + final_gear_cover + penultimate_gear_cover + left_ear + right_ear
@@ -80,13 +103,9 @@ class SG9Servo(Part):
         # Initialize the Part with the constructed shape
         super().__init__(servo_shape.wrapped, **kwargs)
         self.color = color
-        # Define a helpful port for mounting horns
-        self.horn_mount = Location((shaft_center_x, 0, servo_height / 2 + shaft_height))
-        self.top_of_mount_face = left_ear.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
-        self.bottom_of_mount_face = left_ear.faces().filter_by(Axis.Z, -1).sort_by(Axis.Z)[-1]
-        self.top_of_gear_cover_face = final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+
 
 if __name__ == "__main__":
     from ocp_vscode import show
-    model = SG9Servo()
+    model = SG9Servo(left_mount=False, right_mount=False)
     show(model)

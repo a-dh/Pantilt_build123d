@@ -12,7 +12,7 @@ if __name__ == "__main__":
     servo1 = SG9Servo(color=Color("blue")) # pan servo
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
     
-    servo2 = SG9Servo(color=Color("lightblue")) # tilt servo
+    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
     servo2 = servo2.move(Location((servo2.width/2 +
