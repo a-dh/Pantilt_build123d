@@ -1,10 +1,11 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from build123d import Location, Box, Align, Pos
+from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
     Color,
 )
 from ocp_vscode.config import Camera
+import copy
 
 from ocp_vscode import show
 
@@ -28,6 +29,10 @@ if __name__ == "__main__":
         mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
         top_of_mount_face = mount_faces[-1]
 
+
+    body_to_cut = copy.deepcopy(servo1.body)
+
+
     plate_size = servo1.bounding_box().diagonal
     mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -36,7 +41,12 @@ if __name__ == "__main__":
     translation_vector = top_of_mount_face.center() - mpoh_bottom_face.center()
     translation_vector.X = 0
     translation_vector.Y = 0
+    mounting_plate_on_host = mounting_plate_on_host - body_to_cut
     mounting_plate_on_host = mounting_plate_on_host.translate(translation_vector)
 
-    show([servo1, servo2, mounting_plate_on_host],
+    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_static_bearing.color = color=Color("green")
+    pan_static_bearing = pan_static_bearing - body_to_cut
+
+    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
          reset_camera=Camera.KEEP)
