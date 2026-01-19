@@ -1,5 +1,5 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from build123d import Location, Box, Align
+from build123d import Location, Box, Align, Pos
 from build123d.geometry import (
     Axis,
     Color,
@@ -20,12 +20,23 @@ if __name__ == "__main__":
                                         0,
                                         servo1.gear_cover_height +0.25))) # Move out to avoid collision
     
-    body_faces = servo1.body.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+    mounts = servo1.mounts()
+    if mounts["left_mount"] is None and  mounts["right_mount"] is None:
+        raise ValueError("At least one mount (left or right) must be present on the pan servo for mounting the tilt servo.")
+    else:
+        mount = mounts["left_mount"] if mounts["left_mount"] is not None else mounts["right_mount"]
+        mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+        top_of_mount_face = mount_faces[-1]
+
     plate_size = servo1.bounding_box().diagonal
     mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
     mounting_plate_on_host.color = Color("gray")
-    mounting_plate_on_host = mounting_plate_on_host.move(body_faces[-1].center_location)
+    mpoh_bottom_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    translation_vector = top_of_mount_face.center() - mpoh_bottom_face.center()
+    translation_vector.X = 0
+    translation_vector.Y = 0
+    mounting_plate_on_host = mounting_plate_on_host.translate(translation_vector)
 
     show([servo1, servo2, mounting_plate_on_host],
          reset_camera=Camera.KEEP)
