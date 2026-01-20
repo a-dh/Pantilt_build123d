@@ -10,16 +10,9 @@ import copy
 from ocp_vscode import show
 
 if __name__ == "__main__":
-    servo1 = SG9Servo(color=Color("blue")) # pan servo
+    servo1 = SG9Servo(color=Color("blue"), label="pan servo") # pan servo
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
     
-    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
-    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((servo2.width/2 +
-                                    servo1.gear_cover_clearance_radius + 2,
-                                        0,
-                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
     
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
@@ -32,7 +25,7 @@ if __name__ == "__main__":
 
     body_to_cut = copy.deepcopy(servo1.body)
 
-
+    # the mounting plate. TODO: make this the starting point instead of the pan servo
     plate_size = servo1.bounding_box().diagonal
     mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -53,6 +46,17 @@ if __name__ == "__main__":
     psb_translation_vector.X = 0
     psb_translation_vector.Y = 0
     pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
+
+    # the panning but not tilting fixture
+    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False, label='tilt servo') # tilt servo
+    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
+    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
+    servo2 = servo2.move(Location((servo2.width/2 +
+                                    servo1.gear_cover_clearance_radius + 2,
+                                        0,
+                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
+
+    # the panning and tilting fixture
 
     show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
          reset_camera=Camera.KEEP)
