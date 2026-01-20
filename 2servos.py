@@ -101,18 +101,18 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
 
     # swivel bearing positioning
     pan_dynamic_bearing = pan_dynamic_bearing.move(
-        Location((0.0, 0.0, -static_bearing_offset + 0.1))
+        Location((0.0, 0.0, -static_bearing_offset + 0.2))
         )  # small gap for free movement
 
     # tilt servo
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2.label = "Tilt Servo"
-    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = Location(position=pan_pivot_face.center()) * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((servo2.width/2 +
-                                    pan_servo.gear_cover_clearance_radius + 2,
-                                        0,
-                                        pan_servo.gear_cover_height +0.25))) # Move out to avoid collision
+    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90).rotate(Axis.Z, 180)  # Rotate for tilting
+    new_var = Location((pan_servo.gear_cover_clearance_radius + 0.2 +
+                                   servo2.width / 2,
+                                     0, 0))
+                
+    servo2 = servo2.move(new_var) 
     
     assembly = Compound(label="Pan to Tilt Assembly",
                                     children=[ servo2, pan_dynamic_bearing])
@@ -145,6 +145,7 @@ if __name__ == "__main__":
 
     pan_dynamic_assembly = model_pan_to_tilt_assembly(static_bearing_offset, plate_size, servo1)    
     pan_dynamic_assembly.move(pan_pivot_face.center_location)  # move up to final shaft hole
+
     show( [ pan_dynamic_assembly,
             mounting_plate_on_host,
             pan_static_assembly ],
