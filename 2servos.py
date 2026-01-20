@@ -9,50 +9,73 @@ import copy
 
 from ocp_vscode import show
 
-if __name__ == "__main__":
-
-    ### Model the host attachmet stuff ###
-    plate_size = 36  # size of the mounting plate
-    mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
-                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
-    mounting_plate_on_host.label = "Mounting Spot"
-    mounting_plate_on_host.color = Color("gray")
-    mpoh_bottom_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    # When the mounted servo is constructed, cut a hole with assembly clearances for it in the mounting plate
+def model_pan_static(mounting_plate = None):
 
     ### the static portions of the pan acuator ###
     servo1 = SG9Servo(color=Color("blue")) # pan servo
     servo1.label = "Pan Servo"
-    top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
-    
-    mounts = servo1.mounts()
-    if mounts["left_mount"] is None and  mounts["right_mount"] is None:
-        raise ValueError("At least one mount (left or right) must be present on the pan servo for mounting the tilt servo.")
-    else:
-        mount = mounts["left_mount"] if mounts["left_mount"] is not None else mounts["right_mount"]
-        mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
-        top_of_mount_face = mount_faces[-1]
-
-    ### cut the servo body out of the mounting plate ###
     body_to_cut = copy.deepcopy(servo1.body)
-    mounting_plate_on_host = mounting_plate_on_host - body_to_cut
-
-    # Move the servo so that the top of the mounting tabs are flush with the top of the mounting plate
-    translation_vector = mpoh_bottom_face.center() - top_of_mount_face.center()
-    translation_vector.X = 0
-    translation_vector.Y = 0
-    servo1 = servo1.translate(translation_vector)
 
     ### model the static portion of the pan actuator bearing ###
-    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2.5, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    pan_static_bearing.color = color=Color("green")
-    pan_static_bearing = pan_static_bearing - body_to_cut
-    psb_bottom_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    static_swivel_bearing = Cylinder(radius=plate_size / 2, height=2.5, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    static_swivel_bearing.color = color=Color("green")
+    psb_bottom_face = static_swivel_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
     mpoh_top_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
     psb_translation_vector = mpoh_top_face.center() - psb_bottom_face.center()
     psb_translation_vector.X = 0
     psb_translation_vector.Y = 0
-    pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
+    static_swivel_bearing = static_swivel_bearing.translate(psb_translation_vector)
+    static_swivel_bearing = static_swivel_bearing - body_to_cut
+
+    if mounting_plate is not None:
+        ### Align the servo mounting tabs with the top of the mounting plate
+        mounts = servo1.mounts()
+        if mounts["left_mount"] is None and  mounts["right_mount"] is None:
+            raise ValueError("At least one mount (left or right) must be present on the pan servo for mounting the tilt servo.")
+        else:
+            mount = mounts["left_mount"] if mounts["left_mount"] is not None else mounts["right_mount"]
+            mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
+            top_of_mount_face = mount_faces[-1]
+
+        # Move the servo so that the top of the mounting tabs are flush with the top of the mounting plate
+        mpoh_bottom_face = mounting_plate.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+        translation_vector = mpoh_bottom_face.center() - top_of_mount_face.center()
+        translation_vector.X = 0
+        translation_vector.Y = 0
+        servo1 = servo1.translate(translation_vector)
+
+        ### cut the servo body out of the mounting plate ###
+        mounting_plate = mounting_plate - body_to_cut
+
+
+    pan_static = {'servo': servo1 ,
+                  'swivel_bearing': static_swivel_bearing,
+    }
+
+
+    return mounting_plate, pan_static
+
+
+if __name__ == "__main__":
+
+    ### Model the host attachmet stuff ###
+    plate_size = 36  # size of the mounting plate
+    mounting_plate_thickeness = 2.5  # thickness of the mounting plate
+    mounting_plate_on_host = Box(plate_size, plate_size, mounting_plate_thickeness,
+                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
+    mounting_plate_on_host.label = "Mounting Spot"
+    mounting_plate_on_host.color = Color("gray")
+    mounting_plate_on_host, pan_static_assembly = model_pan_static(mounting_plate_on_host)
+
+    servo1 = pan_static_assembly['servo']
+    pan_static_bearing = pan_static_assembly['swivel_bearing']
+
+    ### Define the pan pivot axis. ###
+    ## all of the pan actuator components will be defined relative to this axis ##
+    top_of_pan_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+    pan_pivot_axis = top_of_pan_shaft.center()
+    
+
 
     ### model the panning portion of the tilt actuator ###
     # swivel bearing
