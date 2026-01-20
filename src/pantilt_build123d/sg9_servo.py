@@ -62,11 +62,11 @@ class SG9Servo(Part):
         shaft_top_face = shaft_base.faces().sort_by(Axis.Z)[-1]
         shaft_top_plane = Plane(shaft_top_face)
 
-        # Define a helpful refference point for mounting horns
-        self.horn_mount = Location((shaft_center_x, 0, servo_height / 2 + shaft_height))
-
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
         screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height)
+
+        # Define a helpful reference point for mounting horns. 
+        self.horn_mount_face = shaft_base.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
         teeth_list = []
         for i in range(spline_teeth):
