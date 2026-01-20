@@ -44,7 +44,7 @@ if __name__ == "__main__":
     servo1 = servo1.translate(translation_vector)
 
     ### model the static portion of the pan actuator bearing ###
-    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2.5, align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_static_bearing.color = color=Color("green")
     pan_static_bearing = pan_static_bearing - body_to_cut
     psb_bottom_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
@@ -55,6 +55,22 @@ if __name__ == "__main__":
     pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
 
     ### model the panning portion of the tilt actuator ###
+    # swivel bearing
+    pan_dynamic_bearing = Cylinder(radius=plate_size / 2, height=servo1.gear_cover_height, 
+                                   align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing.label = "Pan Dynamic Bearing"
+    pan_dynamic_bearing.color = color=Color("lightgreen")
+    pdb_servo_clearance_hole = Cylinder(radius=servo1.gear_cover_clearance_radius,
+                                       height=servo1.gear_cover_height + 1,
+                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
+    psb_top_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
+    pdb_bottom_face = pan_dynamic_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    pdb_translation_vector = psb_top_face.center() - pdb_bottom_face.center()
+    pan_dynamic_bearing = pan_dynamic_bearing.translate(pdb_translation_vector)
+    pan_dynamic_bearing = pan_dynamic_bearing.move(Location((0,0,.1)))  # small gap for free movement
+
+    # tilt servo
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2.label = "Tilt Servo"
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
@@ -64,5 +80,5 @@ if __name__ == "__main__":
                                         0,
                                         servo1.gear_cover_height +0.25))) # Move out to avoid collision
 
-    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
+    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing, pan_dynamic_bearing],
          reset_camera=Camera.KEEP)
