@@ -10,16 +10,20 @@ import copy
 from ocp_vscode import show
 
 if __name__ == "__main__":
+
+    ### Model the host attachmet stuff ###
+    plate_size = 36  # size of the mounting plate
+    mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
+                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
+    mounting_plate_on_host.label = "Mounting Spot"
+    mounting_plate_on_host.color = Color("gray")
+    mpoh_bottom_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    # When the mounted servo is constructed, cut a hole with assembly clearances for it in the mounting plate
+
+    ### the static portions of the pan acuator ###
     servo1 = SG9Servo(color=Color("blue")) # pan servo
+    servo1.label = "Pan Servo"
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
-    
-    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
-    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((servo2.width/2 +
-                                    servo1.gear_cover_clearance_radius + 2,
-                                        0,
-                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
     
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
@@ -29,21 +33,17 @@ if __name__ == "__main__":
         mount_faces = mount.faces().filter_by(Axis.Z).sort_by(Axis.Z)
         top_of_mount_face = mount_faces[-1]
 
-
+    ### cut the servo body out of the mounting plate ###
     body_to_cut = copy.deepcopy(servo1.body)
+    mounting_plate_on_host = mounting_plate_on_host - body_to_cut
 
-
-    plate_size = servo1.bounding_box().diagonal
-    mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
-                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
-    mounting_plate_on_host.color = Color("gray")
-    mpoh_bottom_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    translation_vector = top_of_mount_face.center() - mpoh_bottom_face.center()
+    # Move the servo so that the top of the mounting tabs are flush with the top of the mounting plate
+    translation_vector = mpoh_bottom_face.center() - top_of_mount_face.center()
     translation_vector.X = 0
     translation_vector.Y = 0
-    mounting_plate_on_host = mounting_plate_on_host - body_to_cut
-    mounting_plate_on_host = mounting_plate_on_host.translate(translation_vector)
+    servo1 = servo1.translate(translation_vector)
 
+    ### model the static portion of the pan actuator bearing ###
     pan_static_bearing = Cylinder(radius=plate_size / 2, height=2, align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_static_bearing.color = color=Color("green")
     pan_static_bearing = pan_static_bearing - body_to_cut
@@ -53,6 +53,16 @@ if __name__ == "__main__":
     psb_translation_vector.X = 0
     psb_translation_vector.Y = 0
     pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
+
+    ### model the panning portion of the tilt actuator ###
+    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
+    servo2.label = "Tilt Servo"
+    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
+    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
+    servo2 = servo2.move(Location((servo2.width/2 +
+                                    servo1.gear_cover_clearance_radius + 2,
+                                        0,
+                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
 
     show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
          reset_camera=Camera.KEEP)
