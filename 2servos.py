@@ -9,7 +9,20 @@ import copy
 
 from ocp_vscode import show
 
+
 def model_pan_static(mounting_plate = None):
+    """
+    model_pan_static models the static portion of the pan actuator including the pan servo and its static swivel bearing.
+
+    :param mounting_plate_on_host: If not None[default] The mounting plate on the host structure 
+            where the pan servo will be mounted
+    
+    :return: A tuple containing:
+        - mounting_plate: The modified mounting plate with servo body cut out (if mounting_plate was provided)
+        - pan_static: A dictionary containing the static components of the pan actuator (TODO: make it a build123d assembly):
+
+    :raises ValueError: If mounting_plate is provided but the pan servo has no mounts to attach the plate.
+    """
 
     ### the static portions of the pan acuator ###
     servo1 = SG9Servo(color=Color("blue")) # pan servo
@@ -51,7 +64,6 @@ def model_pan_static(mounting_plate = None):
     pan_static = {'servo': servo1 ,
                   'swivel_bearing': static_swivel_bearing,
     }
-
 
     return mounting_plate, pan_static
 
