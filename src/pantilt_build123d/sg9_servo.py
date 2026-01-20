@@ -1,6 +1,16 @@
-from build123d import *
+from build123d import Part, Box, Cylinder, Compound, Shape, Pos, Rot, Plane
+from build123d.geometry import Axis, Color
+
 
 class SG9Servo(Part):
+    """
+    SG9Servo models a standard SG9 servo motor with optional mounting ears.
+
+    In real life the servo is regularly sold with two mounting ears, one on each side.
+    This model allows for either, both, or neither ear to be included/excluded. Perform exclusions
+    in real life with a saw.
+
+    """
     def __init__(
         self,
         servo_length=22,
@@ -53,20 +63,17 @@ class SG9Servo(Part):
 
         # --- Shaft and Splines ---
         shaft_center_x = servo_length / 2 - cover_length / 2
-        shaft_base = Cylinder(radius=shaft_diameter / 2, height=shaft_height)
-        shaft_base = Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * shaft_base
+        final_shaft = Cylinder(radius=shaft_diameter / 2, height=shaft_height)
+        final_shaft = Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * final_shaft
 
 
         # --- Use the Top Face of the Shaft as a Reference ---
         # Select the face with the highest Z coordinate
-        shaft_top_face = shaft_base.faces().sort_by(Axis.Z)[-1]
+        shaft_top_face = final_shaft.faces().sort_by(Axis.Z)[-1]
         shaft_top_plane = Plane(shaft_top_face)
 
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
         screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height)
-
-        # Define a helpful reference point for mounting horns. 
-        self.horn_mount_face = shaft_base.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
         teeth_list = []
         for i in range(spline_teeth):
@@ -108,12 +115,14 @@ class SG9Servo(Part):
         self.top_of_gear_cover_face = final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
         # --- Assembly and Finishing ---
-        servo_shape = self.body + shaft_base + spline + self.final_gear_cover + self.penultimate_gear_cover + self.left_mount + self.right_mount
+        servo_shape = self.body + final_shaft + spline + self.final_gear_cover + self.penultimate_gear_cover + self.left_mount + self.right_mount
         servo_shape -= screw_hole
+        self.final_shaft : Shape = final_shaft
 
         # Initialize the Part with the constructed shape
         super().__init__(servo_shape.wrapped, **kwargs)
         self.color = color
+
 
     def mounts(self):
         """
