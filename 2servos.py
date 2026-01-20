@@ -47,7 +47,15 @@ if __name__ == "__main__":
     psb_translation_vector.Y = 0
     pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
 
-    # the panning but not tilting fixture
+    # the panning but not tilting Part
+    pan_dynamic_bearing = Cylinder(radius=plate_size / 2,
+                                      height= 2,
+                                      align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing = pan_dynamic_bearing - Cylinder(radius=servo1.gear_cover_clearance_radius,
+                                                        height=2.5,
+                                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing.color = Color("lightgreen")
+    
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False, label='tilt servo') # tilt servo
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
@@ -58,5 +66,5 @@ if __name__ == "__main__":
 
     # the panning and tilting fixture
 
-    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
+    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing, pan_dynamic_bearing],
          reset_camera=Camera.KEEP)
