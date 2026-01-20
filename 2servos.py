@@ -1,8 +1,13 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from build123d import Location, Box, Align, Cylinder, Compound, Shape
+
+from build123d.objects_part import Compound, Box, Cylinder
+from build123d import  Plane, Shape, Face
+from build123d.build_enums import Align 
 from build123d.geometry import (
     Axis,
     Color,
+    Location,
+    Vector
 )
 from ocp_vscode.config import Camera
 import copy
@@ -31,6 +36,7 @@ def model_pan_static(mounting_plate: Shape = None):
 
     ### model the static portion of the pan actuator bearing ###
     static_swivel_bearing = Cylinder(radius=plate_size / 2, height=2.5, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    static_swivel_bearing.label = "Pan Static Bearing"
     static_swivel_bearing.color = color=Color("green")
     psb_bottom_face = static_swivel_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
     mpoh_top_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
@@ -38,7 +44,7 @@ def model_pan_static(mounting_plate: Shape = None):
     psb_translation_vector.X = 0
     psb_translation_vector.Y = 0
     static_swivel_bearing = static_swivel_bearing.translate(psb_translation_vector)
-    static_bearing_offset.move(Location((servo1.final_shaft.center().X, 0.0, 0.0))) 
+    static_swivel_bearing.move(Location((servo1.final_shaft.center().X, 0.0, 0.0))) 
     static_swivel_bearing = static_swivel_bearing - body_to_cut
 
     if mounting_plate is not None:
@@ -86,11 +92,12 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
     pan_dynamic_bearing = Cylinder(radius=bearing_diameter / 2, height=pan_servo.gear_cover_height, 
                                    align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_dynamic_bearing.label = "Pan Dynamic Bearing"
-    pan_dynamic_bearing.color = color=Color("lightgreen")
+    pan_dynamic_bearing.color = Color("lightgreen")
     pdb_servo_clearance_hole = Cylinder(radius=pan_servo.gear_cover_clearance_radius,
                                        height=pan_servo.gear_cover_height + 1,
                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
+    pan_dynamic_bearing.label = "Pan Dynamic Bearing"
 
     # swivel bearing positioning
     pan_dynamic_bearing = pan_dynamic_bearing.move(
@@ -101,7 +108,7 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2.label = "Tilt Servo"
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = Location(position=pan_pivot_point.center()) * servo2 # Move up to tilting position
+    servo2 = Location(position=pan_pivot_face.center()) * servo2 # Move up to tilting position
     servo2 = servo2.move(Location((servo2.width/2 +
                                     pan_servo.gear_cover_clearance_radius + 2,
                                         0,
@@ -131,11 +138,13 @@ if __name__ == "__main__":
 
     ### Define the pan pivot axis. ###
     ## all of the pan actuator components will be defined relative to this axis ##
-    pan_pivot_point = servo1.final_shaft.faces().sort_by(Axis.Z)[-1]  # top face of the pan servo shaft
-    static_bearing_offset = 12.5  # offset of the static bearing from the mounting plate
+    pan_pivot_face : Face = servo1.final_shaft.faces().sort_by(Axis.Z)[-1]  # top face of the pan servo shaft
+    swivel_bearing_top_face : Face = pan_static_assembly.swivel_bearing.faces().sort_by(Axis.Z)[-1]
+    plane : Plane = Plane(swivel_bearing_top_face)
+    static_bearing_offset : float = pan_pivot_face.center().distance_to_plane (plane )
 
     pan_dynamic_assembly = model_pan_to_tilt_assembly(static_bearing_offset, plate_size, servo1)    
-
+    pan_dynamic_assembly.move(pan_pivot_face.center_location)  # move up to final shaft hole
     show( [ pan_dynamic_assembly,
             mounting_plate_on_host,
             pan_static_assembly ],
