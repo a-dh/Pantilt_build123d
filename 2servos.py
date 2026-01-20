@@ -67,9 +67,9 @@ def model_pan_static(mounting_plate = None):
 
     return mounting_plate, assembly
 
-def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
+def model_pan_to_tilt_assembly(pan_pivot_point, static_bearing_offset, pan_servo):
     ### model the panning portion of the tilt actuator ###
-    # swivel bearing
+    # swivel bearing Shape
     pan_dynamic_bearing = Cylinder(radius=plate_size / 2, height=pan_servo.gear_cover_height, 
                                    align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_dynamic_bearing.label = "Pan Dynamic Bearing"
@@ -78,11 +78,11 @@ def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
                                        height=pan_servo.gear_cover_height + 1,
                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
-    psb_top_face = pan_static_assembly.swivel_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
-    pdb_bottom_face = pan_dynamic_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    pdb_translation_vector = psb_top_face.center() - pdb_bottom_face.center()
-    pan_dynamic_bearing = pan_dynamic_bearing.translate(pdb_translation_vector)
-    pan_dynamic_bearing = pan_dynamic_bearing.move(Location((0,0,.1)))  # small gap for free movement
+
+    # swivel bearing positioning
+
+    pan_dynamic_bearing.move(Location(pan_pivot_point.center()))
+    pan_dynamic_bearing = pan_dynamic_bearing.move(Location((0,0,-static_bearing_offset + 0.1)))  # small gap for free movement
 
     # tilt servo
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
@@ -118,9 +118,10 @@ if __name__ == "__main__":
 
     ### Define the pan pivot axis. ###
     ## all of the pan actuator components will be defined relative to this axis ##
-    pan_pivot_point = servo1.horn_mount_face.center()
+    pan_pivot_point = servo1.horn_mount_face
+    static_bearing_offset = 12.5  # offset of the static bearing from the mounting plate
 
-    pan_dynamic_assembly = model_pan_to_tilt_assembly(pan_pivot_point, servo1)    
+    pan_dynamic_assembly = model_pan_to_tilt_assembly(pan_pivot_point, static_bearing_offset, servo1)    
 
     show( [ pan_dynamic_assembly,
             mounting_plate_on_host,
