@@ -1,5 +1,5 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from build123d import Location, Box, Align, Cylinder
+from build123d import Location, Box, Align, Cylinder, Compound
 from build123d.geometry import (
     Axis,
     Color,
@@ -60,12 +60,12 @@ def model_pan_static(mounting_plate = None):
         ### cut the servo body out of the mounting plate ###
         mounting_plate = mounting_plate - body_to_cut
 
-    pan_static = {'servo': servo1 ,
-                  'swivel_bearing': static_swivel_bearing,
-    }
+    assembly = Compound(label="Pan Static Assembly",
+                                    children=[ servo1, static_swivel_bearing])
+    assembly.servo = servo1
+    assembly.swivel_bearing = static_swivel_bearing
 
-    return mounting_plate, pan_static
-
+    return mounting_plate, assembly
 
 def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
     ### model the panning portion of the tilt actuator ###
@@ -78,7 +78,7 @@ def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
                                        height=pan_servo.gear_cover_height + 1,
                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
     pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
-    psb_top_face = pan_static_assembly['swivel_bearing'].faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
+    psb_top_face = pan_static_assembly.swivel_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
     pdb_bottom_face = pan_dynamic_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
     pdb_translation_vector = psb_top_face.center() - pdb_bottom_face.center()
     pan_dynamic_bearing = pan_dynamic_bearing.translate(pdb_translation_vector)
@@ -94,10 +94,12 @@ def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
                                         0,
                                         pan_servo.gear_cover_height +0.25))) # Move out to avoid collision
     
-    return {'tilt servo': servo2, 
-            'pan_swivel_bearing': pan_dynamic_bearing
-    }
+    assembly = Compound(label="Pan to Tilt Assembly",
+                                    children=[ servo2, pan_dynamic_bearing])
+    assembly.servo = servo2
+    assembly.swivel_bearing = pan_dynamic_bearing
 
+    return assembly
 
 if __name__ == "__main__":
 
@@ -110,7 +112,9 @@ if __name__ == "__main__":
     mounting_plate_on_host.color = Color("gray")
     mounting_plate_on_host, pan_static_assembly = model_pan_static(mounting_plate_on_host)
 
-    servo1 = pan_static_assembly['servo']
+    for a in pan_static_assembly.children:
+        print(f'{a}')
+    servo1 = pan_static_assembly.servo
 
     ### Define the pan pivot axis. ###
     ## all of the pan actuator components will be defined relative to this axis ##
@@ -118,7 +122,7 @@ if __name__ == "__main__":
 
     pan_dynamic_assembly = model_pan_to_tilt_assembly(pan_pivot_point, servo1)    
 
-    show(list(pan_static_assembly.values()) + 
-        list(pan_dynamic_assembly.values()) +
-        [ mounting_plate_on_host],
+    show( [ pan_dynamic_assembly,
+            mounting_plate_on_host,
+            pan_static_assembly ],
          reset_camera=Camera.KEEP)
