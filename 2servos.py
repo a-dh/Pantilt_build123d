@@ -60,12 +60,43 @@ def model_pan_static(mounting_plate = None):
         ### cut the servo body out of the mounting plate ###
         mounting_plate = mounting_plate - body_to_cut
 
-
     pan_static = {'servo': servo1 ,
                   'swivel_bearing': static_swivel_bearing,
     }
 
     return mounting_plate, pan_static
+
+
+def model_pan_to_tilt_assembly(pan_pivot_point, pan_servo):
+    ### model the panning portion of the tilt actuator ###
+    # swivel bearing
+    pan_dynamic_bearing = Cylinder(radius=plate_size / 2, height=pan_servo.gear_cover_height, 
+                                   align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing.label = "Pan Dynamic Bearing"
+    pan_dynamic_bearing.color = color=Color("lightgreen")
+    pdb_servo_clearance_hole = Cylinder(radius=pan_servo.gear_cover_clearance_radius,
+                                       height=pan_servo.gear_cover_height + 1,
+                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
+    psb_top_face = pan_static_assembly['swivel_bearing'].faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
+    pdb_bottom_face = pan_dynamic_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
+    pdb_translation_vector = psb_top_face.center() - pdb_bottom_face.center()
+    pan_dynamic_bearing = pan_dynamic_bearing.translate(pdb_translation_vector)
+    pan_dynamic_bearing = pan_dynamic_bearing.move(Location((0,0,.1)))  # small gap for free movement
+
+    # tilt servo
+    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
+    servo2.label = "Tilt Servo"
+    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
+    servo2 = Location(position=pan_servo.horn_mount_face.center()) * servo2 # Move up to tilting position
+    servo2 = servo2.move(Location((servo2.width/2 +
+                                    pan_servo.gear_cover_clearance_radius + 2,
+                                        0,
+                                        pan_servo.gear_cover_height +0.25))) # Move out to avoid collision
+    
+    return {'tilt servo': servo2, 
+            'pan_swivel_bearing': pan_dynamic_bearing
+    }
 
 
 if __name__ == "__main__":
@@ -80,40 +111,14 @@ if __name__ == "__main__":
     mounting_plate_on_host, pan_static_assembly = model_pan_static(mounting_plate_on_host)
 
     servo1 = pan_static_assembly['servo']
-    pan_static_bearing = pan_static_assembly['swivel_bearing']
 
     ### Define the pan pivot axis. ###
     ## all of the pan actuator components will be defined relative to this axis ##
-    top_of_pan_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
-    pan_pivot_axis = top_of_pan_shaft.center()
-    
+    pan_pivot_point = servo1.horn_mount_face.center()
 
+    pan_dynamic_assembly = model_pan_to_tilt_assembly(pan_pivot_point, servo1)    
 
-    ### model the panning portion of the tilt actuator ###
-    # swivel bearing
-    pan_dynamic_bearing = Cylinder(radius=plate_size / 2, height=servo1.gear_cover_height, 
-                                   align=(Align.CENTER, Align.CENTER, Align.MIN))
-    pan_dynamic_bearing.label = "Pan Dynamic Bearing"
-    pan_dynamic_bearing.color = color=Color("lightgreen")
-    pdb_servo_clearance_hole = Cylinder(radius=servo1.gear_cover_clearance_radius,
-                                       height=servo1.gear_cover_height + 1,
-                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
-    pan_dynamic_bearing = pan_dynamic_bearing - pdb_servo_clearance_hole
-    psb_top_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
-    pdb_bottom_face = pan_dynamic_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    pdb_translation_vector = psb_top_face.center() - pdb_bottom_face.center()
-    pan_dynamic_bearing = pan_dynamic_bearing.translate(pdb_translation_vector)
-    pan_dynamic_bearing = pan_dynamic_bearing.move(Location((0,0,.1)))  # small gap for free movement
-
-    # tilt servo
-    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
-    servo2.label = "Tilt Servo"
-    servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
-    servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((servo2.width/2 +
-                                    servo1.gear_cover_clearance_radius + 2,
-                                        0,
-                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
-
-    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing, pan_dynamic_bearing],
+    show(list(pan_static_assembly.values()) + 
+        list(pan_dynamic_assembly.values()) +
+        [ mounting_plate_on_host],
          reset_camera=Camera.KEEP)
