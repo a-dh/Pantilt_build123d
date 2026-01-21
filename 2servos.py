@@ -131,8 +131,6 @@ if __name__ == "__main__":
     mounting_plate_on_host.color = Color("gray")
     mounting_plate_on_host, pan_static_assembly = model_pan_static(mounting_plate_on_host)
 
-    for a in pan_static_assembly.children:
-        print(f'{a}')
     servo1 = pan_static_assembly.servo
 
     ### Define the pan pivot axis. ###
