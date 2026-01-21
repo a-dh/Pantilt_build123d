@@ -34,27 +34,7 @@ class SG9Servo(Part):
         right_mount=True,
         **kwargs,
     ) -> None:
-        """
 
-        Doctests:
-
-        >>> servo = SG9Servo()
-        >>> servo.width
-        12
-        >>> lefty = SG9Servo(left_mount=True, right_mount=False)
-        >>> lefty.left_mount is not None
-        True
-        >>> lefty.right_mount is None
-        True
-        >>> righty = SG9Servo(left_mount=False, right_mount=True)
-        >>> righty.left_mount is None
-        True
-        >>> righty.right_mount is not None
-        True
-        >>> both = SG9Servo(left_mount=True, right_mount=True)
-        >>> both.left_mount is not None and both.right_mount is not None
-        True
-        """
         self.width: int = servo_width
         self.body_height: int = servo_height  # do not interfere with Part.height
         self.length: int = servo_length
@@ -204,10 +184,6 @@ class SG9ServoHorn(Part):
 
 
 if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod(verbose=True)
-
     from ocp_vscode import show
 
     servo = SG9Servo(label="SG9 Servo")

@@ -1,5 +1,6 @@
 import pytest
-from pantilt_build123d.sg9_servo import SG9Servo 
+
+from pantilt_build123d.sg9_servo import SG9Servo
 
 
 @pytest.mark.parametrize(
@@ -11,7 +12,12 @@ from pantilt_build123d.sg9_servo import SG9Servo
         (False,  False, True, True),
     ],
 )
-def test_mounts(left, right, expect_left_none, expect_right_none):
+def test_mounts(
+    left: bool,
+    right: bool,
+    expect_left_none: bool,
+    expect_right_none: bool,
+):
     servo = SG9Servo(left_mount=left, right_mount=right)
     mounts = servo.mounts()
 
