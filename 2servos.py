@@ -7,7 +7,6 @@ from build123d.geometry import (
     Axis,
     Color,
     Location,
-    Vector
 )
 from ocp_vscode.config import Camera
 import copy
@@ -74,6 +73,7 @@ def model_pan_static(mounting_plate: Shape = None):
 
     return mounting_plate, assembly
 
+
 def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: float,
                                pan_servo: SG9Servo):
     """
@@ -83,8 +83,9 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
        * the unit will pivot around Axis.Z at local 0,0,0
        * the top of the static swivel bearing is located at Z = -static_bearing_offset
 
-    :param static_bearing_offset: Description
-    :param pan_servo: Description
+    :param static_bearing_offset: The istance from the pan servo final shaft top face to the top of the static swivel bearing
+    :param bearing_diameter: Float the diameter of the other part of the swivel bearing 
+    :param pan_servo: The Shape of the pan servo for clearance purposes
     """
 
     ### model the panning portion of the tilt actuator ###
@@ -103,6 +104,13 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
     pan_dynamic_bearing = pan_dynamic_bearing.move(
         Location((0.0, 0.0, -static_bearing_offset + 0.2))
         )  # small gap for free movement
+    
+    ### Mounting bar for pan horn ###
+    mount_bar_length = pan_servo.gear_cover_clearance_radius + bearing_diameter / 2  # mm 
+    horn_mount_bar = Box(length=5, width=mount_bar_length, height=pan_servo.gear_cover_height,
+        align=(Align.CENTER, Align.CENTER, Align.MIN)).move(
+            Location((0.0, 0.0, -static_bearing_offset + pan_servo.gear_cover_height))
+        )  # small gap for free movement
 
     # tilt servo
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
@@ -114,7 +122,7 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
     servo2 = servo2.move(servo_shift) 
     
     assembly = Compound(label="Pan to Tilt Assembly",
-                                    children=[ servo2, pan_dynamic_bearing])
+                        children=[ servo2, pan_dynamic_bearing, horn_mount_bar])
     assembly.servo = servo2
     assembly.swivel_bearing = pan_dynamic_bearing
 
