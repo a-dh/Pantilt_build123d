@@ -108,11 +108,10 @@ def model_pan_to_tilt_assembly(static_bearing_offset: float, bearing_diameter: f
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2.label = "Tilt Servo"
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90).rotate(Axis.Z, 180)  # Rotate for tilting
-    new_var = Location((pan_servo.gear_cover_clearance_radius + 0.2 +
+    servo_shift = Location((pan_servo.gear_cover_clearance_radius + 0.2 +
                                    servo2.width / 2,
                                      0, 0))
-                
-    servo2 = servo2.move(new_var) 
+    servo2 = servo2.move(servo_shift) 
     
     assembly = Compound(label="Pan to Tilt Assembly",
                                     children=[ servo2, pan_dynamic_bearing])
