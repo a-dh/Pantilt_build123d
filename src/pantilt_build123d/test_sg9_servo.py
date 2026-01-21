@@ -6,10 +6,10 @@ from pantilt_build123d.sg9_servo import SG9Servo
 @pytest.mark.parametrize(
     "left,right,expect_left_none,expect_right_none",
     [
-        (True,  False, False, True),
-        (False, True,  True,  False),
-        (True,  True,  False, False),
-        (False,  False, True, True),
+        (True,  False, False, True),  # left only
+        (False, True,  True,  False), # right only
+        (True,  True,  False, False), # both
+        (False,  False, True, True),  # neither
     ],
 )
 def test_mounts(

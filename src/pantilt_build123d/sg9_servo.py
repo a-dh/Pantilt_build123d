@@ -1,6 +1,19 @@
-from build123d import Face, Part, Plane, Shape
-from build123d.build_enums import Align
-from build123d.geometry import Axis, Color, Pos, Rot
+from build123d import (
+    BuildSketch,
+    Circle,
+    Face,
+    Part,
+    Plane,
+    Polygon,
+    Shape,
+    Solid,
+    extrude,
+    fillet,
+    make_face,
+)
+from build123d.build_enums import Align, Mode
+from build123d.geometry import Axis, Color, Location, Pos, Rot
+from build123d.objects_curve import BuildLine, Line, ThreePointArc
 from build123d.objects_part import Box, Compound, Cylinder
 
 
@@ -34,7 +47,6 @@ class SG9Servo(Part):
         right_mount=True,
         **kwargs,
     ) -> None:
-
         self.width: int = servo_width
         self.body_height: int = servo_height  # do not interfere with Part.height
         self.length: int = servo_length
@@ -138,6 +150,42 @@ class SG9Servo(Part):
         return {"right_mount": self.right_mount, "left_mount": self.left_mount}
 
 
+def tapered_bar(
+    length: float = 12.0,
+    width_start: float = 8.0,
+    width_end: float = 3.0,
+    thickness: float = 2.0,
+) -> Solid:
+    """
+    Tapered bar constructed from two end circles connected by a polygon.
+    Circles provide rounded ends; polygon provides taper.
+    """
+
+    r_start = width_start / 2
+    r_end = width_end / 2
+
+    # Circle centers
+    cL = Location((0, 0))
+    cR = Location((length, 0))
+
+    # Tangent polygon connection points (top/bottom)
+    pL_top = (0, r_start)
+    pL_bot = (0, -r_start)
+    pR_top = (length, r_end)
+    pR_bot = (length, -r_end)
+
+    with BuildSketch() as s:
+        # Add both end circles
+        Circle(r_start, mode=Mode.ADD).move(cL)
+        Circle(r_end, mode=Mode.ADD).move(cR)
+
+        # Add polygon between the ends to create the taper
+        Polygon([pL_top, pR_top, pR_bot, pL_bot], mode=Mode.ADD)
+
+        # Union automatically from ADD modes; face is implicit
+    return extrude(s.sketch, thickness)
+
+
 class SG9ServoHorn(Part):
     """
     A simple servo horn for the SG9 servo
@@ -169,7 +217,7 @@ class SG9ServoHorn(Part):
         splined_shaft_hole = Cylinder(
             radius=shaft_diameter / 2, height=horn_thickness, align=align_center_top
         )
-        horn = Cylinder(
+        shaft_socket = Cylinder(
             radius=horn_diameter / 2, height=horn_thickness, align=align_center_bottom
         )
         screw_hole = Cylinder(
@@ -177,8 +225,18 @@ class SG9ServoHorn(Part):
             height=horn_thickness + 1,
             align=align_center_bottom,
         )
-        horn -= Pos(0, 0, horn_thickness - 0.5) * screw_hole
-        horn -= Pos(0, 0, -1) * splined_shaft_hole
+        shaft_socket -= Pos(0, 0, -1) * splined_shaft_hole
+        shaft_socket -= Pos(0, 0, +0.5) * screw_hole
+
+        horn = shaft_socket
+        bar = tapered_bar(
+            length=20,
+            width_start=horn_diameter,
+            width_end=horn_diameter / 2,
+            thickness=1.5,
+        )
+
+        horn += bar
 
         super().__init__(horn.wrapped, **kwargs)
 
