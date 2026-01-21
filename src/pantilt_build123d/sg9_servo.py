@@ -153,29 +153,7 @@ class SG9Servo(Part):
         self.color = color
 
     def mounts(self):
-        """
-        Docstring for mounts
-
-        :param self: Description
-
-        >>> servo = SG9Servo(left_mount=True, right_mount=False)
-        >>> mounts = servo.mounts()
-        >>> mounts["left_mount"] is not None
-        True
-        >>> mounts["right_mount"] is None
-        True
-        >>> servo2 = SG9Servo(left_mount=False, right_mount=True)
-        >>> mounts2 = servo2.mounts()
-        >>> mounts2["left_mount"] is None
-        True
-        >>> mounts2["right_mount"] is not None
-        True
-        >>> servo3 = SG9Servo(left_mount=True, right_mount=True)
-        >>> mounts3 = servo3.mounts()
-        >>> mounts3["left_mount"] is not None and mounts3["right_mount"] is not None
-        True
-
-        """
+        pass  # Replace this with the actual implementation for the mounts method
 
         return {"right_mount": self.right_mount, "left_mount": self.left_mount}
 

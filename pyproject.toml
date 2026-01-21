@@ -26,6 +26,7 @@ dev = [
     "black",
     "mypy",
     "nox",
+    "pytest",
     "ruff",
     "types-setuptools"
 ]
