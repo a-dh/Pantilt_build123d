@@ -1,8 +1,7 @@
-from typing import Literal
-from build123d.objects_part import Compound, Box, Cylinder
-from build123d import Face, Plane, Shape, Part
+from build123d import Face, Part, Plane, Shape
 from build123d.build_enums import Align
 from build123d.geometry import Axis, Color, Pos, Rot
+from build123d.objects_part import Box, Compound, Cylinder
 
 
 class SG9Servo(Part):
@@ -10,8 +9,8 @@ class SG9Servo(Part):
     SG9Servo models a standard SG9 servo motor with optional mounting ears.
 
     In real life the servo is regularly sold with two mounting ears, one on each side.
-    This model allows for either, both, or neither ear to be included/excluded. Perform exclusions
-    in real life with a saw.
+    This model allows for either, both, or neither ear to be included/excluded. Perform
+     exclusions in real life with a saw.
 
     """
 
@@ -115,7 +114,8 @@ class SG9Servo(Part):
             radius=ear_hole_dia / 2, height=ear_thickness + 1
         )
 
-        # Position ears relative to the bottom of the body and keep track of where they are for clients
+        # Position ears relative to the bottom of the body and keep track of where they
+        #  are for clients
         z_pos: float = -servo_height / 2 + ear_height_pos
         if left_mount:
             self.left_mount = (
