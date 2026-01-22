@@ -11,7 +11,7 @@ from build123d.objects_part import Box, Compound, Cylinder
 from ocp_vscode import show
 from ocp_vscode.config import Camera
 
-from pantilt_build123d.sg9_servo import SG9Servo
+from pantilt_build123d.sg9_servo import SG9Servo, SG9ServoHorn
 
 
 def model_pan_static(mounting_plate: Shape = None):
@@ -128,18 +128,37 @@ def model_pan_to_tilt_assembly(
         Location((0.0, 0.0, -static_bearing_offset + 0.2))
     )  # small gap for free movement
 
+    ### The panning servo horn ###
+    pan_servo_horn = SG9ServoHorn(
+        servo=pan_servo,
+        color=Color("red"),
+        label="Pan Servo Horn",
+    )
+    final_shaft_center = pan_servo.final_shaft.center()
+    #pan_servo_horn = Location(final_shaft_center) * pan_servo_horn
+
     ### Mounting bar for pan horn ###
-    mount_bar_length = (
+    mount_bar_width = (
         pan_servo.gear_cover_clearance_radius + bearing_diameter / 2
     )  # mm
+    horn_socket_radius = pan_servo_horn.socket_diameter / 2  # mm
+
+    bar_height = pan_servo.gear_cover_height
     horn_mount_bar = Box(
-        length=5,
-        width=mount_bar_length,
-        height=pan_servo.gear_cover_height,
+        length=(horn_socket_radius + 2.0) * 2,
+        width=mount_bar_width,
+        height=bar_height,
         align=(Align.CENTER, Align.CENTER, Align.MIN),
-    ).move(
+    )
+    horn_mount_bar.label = "Horn Mount Bar"
+    horn_mount_bar.color = Color("orange")
+    horn_hole = Cylinder(horn_socket_radius + 1, bar_height + 1,
+                         align=(Align.CENTER, Align.CENTER, Align.MIN))
+    horn_mount_bar -= horn_hole
+    horn_mount_bar.move(
         Location((0.0, 0.0, -static_bearing_offset + pan_servo.gear_cover_height))
     )  # small gap for free movement
+
 
     # tilt servo
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False)  # tilt servo
@@ -154,7 +173,7 @@ def model_pan_to_tilt_assembly(
 
     assembly = Compound(
         label="Pan to Tilt Assembly",
-        children=[servo2, pan_dynamic_bearing, horn_mount_bar],
+        children=[servo2, pan_dynamic_bearing, pan_servo_horn, horn_mount_bar],
     )
     assembly.servo = servo2
     assembly.swivel_bearing = pan_dynamic_bearing
