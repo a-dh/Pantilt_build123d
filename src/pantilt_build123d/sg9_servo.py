@@ -139,6 +139,7 @@ class SG9Servo(Part):
         )
         servo_shape -= screw_hole
         self.final_shaft: Shape = final_shaft
+        self.final_shaft.radius = shaft_diameter / 2 + spline_depth
 
         # Initialize the Part with the constructed shape
         super().__init__(servo_shape.wrapped, **kwargs)
@@ -196,7 +197,8 @@ class SG9ServoHorn(Part):
 
     def __init__(
         self,
-        horn_diameter=8,
+        servo: SG9Servo,
+        horn_diameter = None,
         horn_length=20,
         horn_thickness=4,
         screw_hole_dia=2,
@@ -215,6 +217,9 @@ class SG9ServoHorn(Part):
         :param shaft_diameter: the 'diameter' of the servo splined shaft
         :param kwargs: Additional keyword arguments passed to the Part constructor
         """
+
+        if horn_diameter is None:
+            horn_diameter = (1.0 + servo.final_shaft.radius) * 2.0
 
         horn_bar_length = horn_length - horn_diameter / 2
         bar = _tapered_bar(
@@ -257,5 +262,5 @@ if __name__ == "__main__":
     from ocp_vscode import show
 
     servo = SG9Servo(label="SG9 Servo")
-    horn = SG9ServoHorn(label="SG9 Servo Horn")
+    horn = SG9ServoHorn(servo, label="SG9 Servo Horn")
     show(servo, horn)
