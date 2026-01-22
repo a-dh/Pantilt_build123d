@@ -1,3 +1,4 @@
+import weakref
 
 from build123d import (
     BuildSketch,
@@ -149,7 +150,7 @@ class SG9Servo(Part):
         return {"right_mount": self.right_mount, "left_mount": self.left_mount}
 
 
-def tapered_bar(
+def _tapered_bar(
     length: float = 12.0,
     width_start: float = 8.0,
     width_end: float = 3.0,
@@ -181,10 +182,9 @@ def tapered_bar(
             Circle(r_end, mode=Mode.ADD)
 
         # Add polygon between the ends to create the taper
-        with Locations((length/2, 0)):
+        with Locations((length / 2, 0)):
             Polygon([pL_top, pR_top, pR_bot, pL_bot], mode=Mode.ADD)
 
-        # Union automatically from ADD modes; face is implicit
     return extrude(s.sketch, thickness)
 
 
@@ -197,6 +197,7 @@ class SG9ServoHorn(Part):
     def __init__(
         self,
         horn_diameter=8,
+        horn_length=20,
         horn_thickness=4,
         screw_hole_dia=2,
         shaft_diameter=5,
@@ -215,9 +216,8 @@ class SG9ServoHorn(Part):
         :param kwargs: Additional keyword arguments passed to the Part constructor
         """
 
-        horn_length = 20
         horn_bar_length = horn_length - horn_diameter / 2
-        bar = tapered_bar(
+        bar = _tapered_bar(
             length=horn_bar_length,
             width_start=horn_diameter,
             width_end=horn_diameter / 2,
@@ -245,7 +245,10 @@ class SG9ServoHorn(Part):
         horn += bar
         horn -= splined_shaft_hole
         horn -= Pos(0, 0, -horn_thickness / 2) * screw_hole
-        
+
+        self.length = horn_length
+        self.socket_diameter = horn_diameter
+        self.original_servo = weakref.ref(servo)
 
         super().__init__(horn.wrapped, **kwargs)
 
