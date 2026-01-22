@@ -1,4 +1,4 @@
-from encodings import big5
+
 from build123d import (
     BuildSketch,
     Circle,
@@ -10,12 +10,9 @@ from build123d import (
     Shape,
     Solid,
     extrude,
-    fillet,
-    make_face,
 )
 from build123d.build_enums import Align, Mode
 from build123d.geometry import Axis, Color, Location, Pos, Rot
-from build123d.objects_curve import BuildLine, Line, ThreePointArc
 from build123d.objects_part import Box, Compound, Cylinder
 
 
