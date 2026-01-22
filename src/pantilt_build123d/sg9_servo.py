@@ -1,7 +1,9 @@
+from encodings import big5
 from build123d import (
     BuildSketch,
     Circle,
     Face,
+    Locations,
     Part,
     Plane,
     Polygon,
@@ -176,11 +178,14 @@ def tapered_bar(
 
     with BuildSketch() as s:
         # Add both end circles
-        Circle(r_start, mode=Mode.ADD).move(cL)
-        Circle(r_end, mode=Mode.ADD).move(cR)
+        with Locations(cL):
+            Circle(r_start, mode=Mode.ADD)
+        with Locations(cR):
+            Circle(r_end, mode=Mode.ADD)
 
         # Add polygon between the ends to create the taper
-        Polygon([pL_top, pR_top, pR_bot, pL_bot], mode=Mode.ADD)
+        with Locations((length/2, 0)):
+            Polygon([pL_top, pR_top, pR_bot, pL_bot], mode=Mode.ADD)
 
         # Union automatically from ADD modes; face is implicit
     return extrude(s.sketch, thickness)
@@ -195,20 +200,33 @@ class SG9ServoHorn(Part):
     def __init__(
         self,
         horn_diameter=8,
-        horn_thickness=3,
+        horn_thickness=4,
         screw_hole_dia=2,
         shaft_diameter=5,
+        screw_hole_height=0.75,
         **kwargs,
     ) -> None:
         """
         Docstring for __init__
 
         :param self: Description
-        :param horn_diameter: Description
-        :param horn_thickness: Description
+        :param horn_diameter: Socket outer diameter
+        :param horn_thickness: Top-to-bottom thickness of the horn extension from the
+          socket
         :param screw_hole_dia: Description
-
+        :param shaft_diameter: the 'diameter' of the servo splined shaft
+        :param kwargs: Additional keyword arguments passed to the Part constructor
         """
+
+        horn_length = 20
+        horn_bar_length = horn_length - horn_diameter / 2
+        bar = tapered_bar(
+            length=horn_bar_length,
+            width_start=horn_diameter,
+            width_end=horn_diameter / 2,
+            thickness=1.5,
+        )
+        # bar = bar.move(Location((0, 0, horn_thickness / 2)))
 
         align_center_top = (Align.CENTER, Align.CENTER, Align.MAX)
         align_center_bottom = (Align.CENTER, Align.CENTER, Align.MIN)
@@ -218,25 +236,19 @@ class SG9ServoHorn(Part):
             radius=shaft_diameter / 2, height=horn_thickness, align=align_center_top
         )
         shaft_socket = Cylinder(
-            radius=horn_diameter / 2, height=horn_thickness, align=align_center_bottom
-        )
+            radius=horn_diameter / 2, height=horn_thickness, align=align_center_top
+        ).move(Location((0, 0, screw_hole_height)))
         screw_hole = Cylinder(
             radius=screw_hole_dia / 2,
             height=horn_thickness + 1,
             align=align_center_bottom,
         )
-        shaft_socket -= Pos(0, 0, -1) * splined_shaft_hole
-        shaft_socket -= Pos(0, 0, +0.5) * screw_hole
 
         horn = shaft_socket
-        bar = tapered_bar(
-            length=20,
-            width_start=horn_diameter,
-            width_end=horn_diameter / 2,
-            thickness=1.5,
-        )
-
         horn += bar
+        horn -= splined_shaft_hole
+        horn -= Pos(0, 0, -horn_thickness / 2) * screw_hole
+        
 
         super().__init__(horn.wrapped, **kwargs)
 
