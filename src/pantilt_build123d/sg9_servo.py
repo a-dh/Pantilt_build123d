@@ -139,6 +139,7 @@ class SG9Servo(Part):
         )
         servo_shape -= screw_hole
         self.final_shaft: Shape = final_shaft
+        self.final_shaft.top_face = shaft_top_face
         self.final_shaft.radius = shaft_diameter / 2 + spline_depth
 
         # Initialize the Part with the constructed shape
@@ -263,4 +264,5 @@ if __name__ == "__main__":
 
     servo = SG9Servo(label="SG9 Servo")
     horn = SG9ServoHorn(servo, label="SG9 Servo Horn")
+    horn.move(Location((0, 30, 0)))
     show(servo, horn)
