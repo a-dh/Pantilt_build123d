@@ -29,5 +29,5 @@ def test_direct_references():
     servo = SG9Servo_Assembly()
     # just test that these attributes exist and are of the expected type
     assert isinstance(servo.final_shaft, Shape)
-    assert isinstance(servo.final_shaft.top_face, Face)
-    assert isinstance(servo.final_shaft.radius, float)
+    assert isinstance(servo.final_shaft_top_face, Face)
+    assert isinstance(servo.final_shaft_radius, float)

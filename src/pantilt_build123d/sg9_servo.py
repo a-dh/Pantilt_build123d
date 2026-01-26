@@ -1,5 +1,5 @@
 import weakref
-from typing import Tuple
+from typing import Tuple, final
 
 from build123d import (
     BuildSketch,
@@ -54,21 +54,23 @@ class SG9Servo_Assembly(Compound):
         self.gear_cover_clearance_radius: float = 3 * servo_width / 4
 
         # --- Body ---
-        self.body = Box(servo_length, servo_width, servo_height)
-        self.body.label = "SG9 Servo Body"
+        body = Box(servo_length, servo_width, servo_height)
+        body.label = "SG9 Servo Body"
 
         # --- Shaft and Splines ---
         shaft_center_x: float = servo_length / 2 - cover_length / 2
         final_shaft = Cylinder(radius=shaft_diameter / 2, height=shaft_height)
-        self.final_shaft = (
+        final_shaft = (
             Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * final_shaft
         )
-        self.final_shaft.label = "SG9 Servo Shaft"
+        final_shaft.label = "SG9 Servo Shaft"
+        final_shaft.radius = shaft_diameter / 2
 
         # --- Use the Top Face of the Shaft as a Reference ---
         # Select the face with the highest Z coordinate
         shaft_top_face: Face = final_shaft.faces().sort_by(Axis.Z)[-1]
         shaft_top_plane: Plane = Plane(shaft_top_face)
+        shaft_top_face.label = "SG9 Servo Shaft Top Face"
 
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
         screw_hole = shaft_top_plane * Cylinder(
@@ -76,7 +78,7 @@ class SG9Servo_Assembly(Compound):
             height=shaft_height / 2,
             align=(Align.CENTER, Align.CENTER, Align.MAX),
         )
-        self.final_shaft -= screw_hole
+        final_shaft -= screw_hole
 
         teeth_list = []
         for i in range(spline_teeth):
@@ -89,80 +91,129 @@ class SG9Servo_Assembly(Compound):
                 * tooth
             )
             teeth_list.append(tooth)
-        self.spline = Compound(teeth_list)
-        self.final_shaft += self.spline
+        spline = Compound(teeth_list)
+        final_shaft += spline
 
         # --- Gear Covers ---
         final_gear_cover = Cylinder(radius=servo_width / 2, height=cover_height)
-        self.final_gear_cover = (
+        final_gear_cover = (
             Pos(shaft_center_x, 0, servo_height / 2 + cover_height / 2)
             * final_gear_cover
         )
-        self.final_gear_cover.label = "SG9 Servo Final Gear Cover"
+        final_gear_cover.label = "SG9 Servo Final Gear Cover"
 
         penultimate_gear_cover = Cylinder(radius=servo_width / 4, height=cover_height)
-        self.penultimate_gear_cover = (
+        penultimate_gear_cover = (
             Pos(
                 shaft_center_x - servo_width / 2, 0, servo_height / 2 + cover_height / 2
             )
             * penultimate_gear_cover
         )
-        self.penultimate_gear_cover.label = "SG9 Servo Penultimate Gear Cover"
-
-        # --- Side Ears ---
-        ear_length: int = 2 * ear_hole_offset
-        ear_geom = Box(ear_length, servo_width, ear_thickness)
-        ear_geom -= Pos(ear_length / 2 - ear_hole_offset, 0, 0) * Cylinder(
-            radius=ear_hole_dia / 2, height=ear_thickness + 1
-        )
+        penultimate_gear_cover.label = "SG9 Servo Penultimate Gear Cover"
 
         # --- Assembly and Finishing ---
         self.label = kwargs.get("label", "SG9 Servo")
         super().__init__(
             children=[
-                self.body,
-                self.final_shaft,
-                self.final_gear_cover,
-                self.penultimate_gear_cover,
+                body,
+                final_shaft,
+                final_gear_cover,
+                penultimate_gear_cover,
+                shaft_top_face,
             ],
             **kwargs,
         )
 
+        # --- Side Ears ---
         # Position ears relative to the bottom of the body and keep track of where they
         #  are for clients
         z_pos: float = -servo_height / 2 + ear_height_pos
         if left_mount:
-            self.left_mount = (
-                Pos(servo_length / 2 + ear_length / 2, 0, z_pos) * ear_geom
+            self.left_mount = self.build_ear(
+                servo_length,
+                +1,
+                ear_hole_offset,
+                z_pos,
+                servo_width,
+                ear_thickness,
+                ear_hole_dia,
+                label="Left Mount",
             )
-            self.left_mount.label = "SG9 Servo Left Mount"
-            self.children += tuple(self.left_mount)
         else:
             self.left_mount = None
 
         if right_mount:
-            self.right_mount = (
-                Pos(-(servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
+            self.right_mount = self.build_ear(
+                servo_length,
+                -1,
+                ear_hole_offset,
+                z_pos,
+                servo_width,
+                ear_thickness,
+                ear_hole_dia,
+                label="Right Mount",
             )
-            self.right_mount.label = "SG9 Servo Right Mount"
-            self.children += tuple(self.right_mount)
         else:
             self.right_mount = None
 
-        self.top_of_gear_cover_face: Face = (
-            final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+        # Store final shaft radius for client use
+        self._final_shaft_radius = shaft_diameter / 2
+
+    def build_ear(
+        self,
+        servo_length: float,
+        len_dir: float,
+        ear_hole_offset: float,
+        z_pos: float,
+        servo_width: float,
+        ear_thickness: float,
+        ear_hole_dia: float,
+        label=None,
+    ):
+        ear_length: int = 2 * ear_hole_offset
+        ear_geom = Box(ear_length, servo_width, ear_thickness)
+        ear_geom -= Pos(ear_length / 2 - ear_hole_offset, 0, 0) * Cylinder(
+            radius=ear_hole_dia / 2, height=ear_thickness + 1
         )
-        print(self.children)
-        self.final_shaft: Shape = final_shaft
-        self.final_shaft.top_face = shaft_top_face
-        self.final_shaft.radius = shaft_diameter / 2 + spline_depth
+        ear_geom = (
+            Pos(len_dir * (servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
+        )
+        self.children += tuple(ear_geom)
+        if label is not None:
+            ear_geom.label = label
+        return ear_geom
+    
+    @property
+    def body(self) -> Solid:
+        return next(
+            child for child in self.children if child.label == "SG9 Servo Body"
+        )
+
+    @property
+    def top_of_gear_cover_face(self) -> Face:
+        final_gear_cover: Solid = next(
+            child for child in self.children if child.label == "Final Gear Cover"
+        )
+        return final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
+
+    @property
+    def final_shaft(self) -> Solid:
+        return next(
+            child for child in self.children if child.label == "SG9 Servo Shaft"
+        )
+
+    @property
+    def final_shaft_top_face(self) -> Face:
+        return next(
+            child for child in self.children if child.label == "SG9 Servo Shaft Top Face"
+        )
+
+    @property
+    def final_shaft_radius(self) -> float:
+        return self._final_shaft_radius
 
     def mounts(self):
-        children = self.children
-        left_mount = children.filter_left_mount if "left_mount" in children else None
-        right_mount = children.filter_right_mount if "right_mount" in children else None
-
-        return {"right_mount": right_mount, "left_mount": left_mount}
+        return {"right_mount": self.right_mount, "left_mount": self.left_mount}
 
 
 def _tapered_bar(
@@ -233,7 +284,7 @@ class SG9ServoHorn(Part):
         """
 
         if horn_diameter is None:
-            horn_diameter = (1.0 + servo.final_shaft.radius) * 2.0
+            horn_diameter = (1.0 + servo.final_shaft_radius) * 2.0
 
         horn_bar_length = horn_length - horn_diameter / 2
         bar = _tapered_bar(
@@ -276,6 +327,6 @@ if __name__ == "__main__":
     from ocp_vscode import show
 
     servo = SG9Servo_Assembly(label="SG9 Servo")
-    horn = SG9ServoHorn(servo, label="SG9 Servo Horn")
+    horn = SG9ServoHorn(servo, label="Horn")
     horn.move(Location((0, 30, 0)))
     show(servo, horn)
