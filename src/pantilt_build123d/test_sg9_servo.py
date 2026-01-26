@@ -1,4 +1,5 @@
 import pytest
+from build123d import Face, Shape
 
 from pantilt_build123d.sg9_servo import SG9Servo
 
@@ -24,3 +25,9 @@ def test_mounts(
     assert (mounts["left_mount"] is None) == expect_left_none
     assert (mounts["right_mount"] is None) == expect_right_none
 
+def test_direct_references():
+    servo = SG9Servo()
+    # just test that these attributes exist and are of the expected type
+    assert isinstance(servo.final_shaft, Shape)
+    assert isinstance(servo.final_shaft.top, Face)
+    assert isinstance(servo.final_shaft.radius, float)
