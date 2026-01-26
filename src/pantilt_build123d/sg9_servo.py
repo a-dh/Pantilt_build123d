@@ -63,7 +63,7 @@ class SG9Servo_Assembly(Compound):
         self.final_shaft = (
             Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * final_shaft
         )
-        final_shaft.label = "SG9 Servo Shaft"
+        self.final_shaft.label = "SG9 Servo Shaft"
 
         # --- Use the Top Face of the Shaft as a Reference ---
         # Select the face with the highest Z coordinate
@@ -116,18 +116,17 @@ class SG9Servo_Assembly(Compound):
             radius=ear_hole_dia / 2, height=ear_thickness + 1
         )
 
-
-
         # --- Assembly and Finishing ---
         self.label = kwargs.get("label", "SG9 Servo")
-        super().__init__(** kwargs)
-        self.children=[
+        super().__init__(
+            children=[
                 self.body,
                 self.final_shaft,
-                self.spline,
                 self.final_gear_cover,
                 self.penultimate_gear_cover,
-            ]
+            ],
+            **kwargs,
+        )
 
         # Position ears relative to the bottom of the body and keep track of where they
         #  are for clients
