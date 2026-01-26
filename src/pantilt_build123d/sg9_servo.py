@@ -69,7 +69,8 @@ class SG9Servo(Part):
         shaft_top_plane: Plane = Plane(shaft_top_face)
 
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
-        screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height)
+        screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height/2,
+                                                align=(Align.CENTER, Align.CENTER, Align.MAX))
 
         teeth_list = []
         for i in range(spline_teeth):
