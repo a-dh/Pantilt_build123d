@@ -1,4 +1,5 @@
 import weakref
+from typing import Tuple
 
 from build123d import (
     BuildSketch,
@@ -13,11 +14,11 @@ from build123d import (
     extrude,
 )
 from build123d.build_enums import Align, Mode
-from build123d.geometry import Axis, Color, Location, Pos, Rot
+from build123d.geometry import Axis, Location, Pos, Rot
 from build123d.objects_part import Box, Compound, Cylinder
 
 
-class SG9Servo(Part):
+class SG9Servo_Assembly(Compound):
     """
     SG9Servo models a standard SG9 servo motor with optional mounting ears.
 
@@ -42,7 +43,6 @@ class SG9Servo(Part):
         ear_height_pos=17,
         ear_hole_dia=2,
         ear_hole_offset=4,
-        color=Color("lightgray"),
         left_mount=True,
         right_mount=True,
         **kwargs,
@@ -55,13 +55,15 @@ class SG9Servo(Part):
 
         # --- Body ---
         self.body = Box(servo_length, servo_width, servo_height)
+        self.body.label = "SG9 Servo Body"
 
         # --- Shaft and Splines ---
         shaft_center_x: float = servo_length / 2 - cover_length / 2
         final_shaft = Cylinder(radius=shaft_diameter / 2, height=shaft_height)
-        final_shaft = (
+        self.final_shaft = (
             Pos(shaft_center_x, 0, servo_height / 2 + shaft_height / 2) * final_shaft
         )
+        final_shaft.label = "SG9 Servo Shaft"
 
         # --- Use the Top Face of the Shaft as a Reference ---
         # Select the face with the highest Z coordinate
@@ -69,8 +71,12 @@ class SG9Servo(Part):
         shaft_top_plane: Plane = Plane(shaft_top_face)
 
         # Create the hole relative to this plane (Z=0 on the plane is the face surface)
-        screw_hole = shaft_top_plane * Cylinder(radius=1, height=shaft_height/2,
-                                                align=(Align.CENTER, Align.CENTER, Align.MAX))
+        screw_hole = shaft_top_plane * Cylinder(
+            radius=1,
+            height=shaft_height / 2,
+            align=(Align.CENTER, Align.CENTER, Align.MAX),
+        )
+        self.final_shaft -= screw_hole
 
         teeth_list = []
         for i in range(spline_teeth):
@@ -83,7 +89,8 @@ class SG9Servo(Part):
                 * tooth
             )
             teeth_list.append(tooth)
-        spline = Compound(teeth_list)
+        self.spline = Compound(teeth_list)
+        self.final_shaft += self.spline
 
         # --- Gear Covers ---
         final_gear_cover = Cylinder(radius=servo_width / 2, height=cover_height)
@@ -91,6 +98,7 @@ class SG9Servo(Part):
             Pos(shaft_center_x, 0, servo_height / 2 + cover_height / 2)
             * final_gear_cover
         )
+        self.final_gear_cover.label = "SG9 Servo Final Gear Cover"
 
         penultimate_gear_cover = Cylinder(radius=servo_width / 4, height=cover_height)
         self.penultimate_gear_cover = (
@@ -99,6 +107,7 @@ class SG9Servo(Part):
             )
             * penultimate_gear_cover
         )
+        self.penultimate_gear_cover.label = "SG9 Servo Penultimate Gear Cover"
 
         # --- Side Ears ---
         ear_length: int = 2 * ear_hole_offset
@@ -107,6 +116,19 @@ class SG9Servo(Part):
             radius=ear_hole_dia / 2, height=ear_thickness + 1
         )
 
+
+
+        # --- Assembly and Finishing ---
+        self.label = kwargs.get("label", "SG9 Servo")
+        super().__init__(** kwargs)
+        self.children=[
+                self.body,
+                self.final_shaft,
+                self.spline,
+                self.final_gear_cover,
+                self.penultimate_gear_cover,
+            ]
+
         # Position ears relative to the bottom of the body and keep track of where they
         #  are for clients
         z_pos: float = -servo_height / 2 + ear_height_pos
@@ -114,6 +136,8 @@ class SG9Servo(Part):
             self.left_mount = (
                 Pos(servo_length / 2 + ear_length / 2, 0, z_pos) * ear_geom
             )
+            self.left_mount.label = "SG9 Servo Left Mount"
+            self.children += tuple(self.left_mount)
         else:
             self.left_mount = None
 
@@ -121,36 +145,25 @@ class SG9Servo(Part):
             self.right_mount = (
                 Pos(-(servo_length / 2 + ear_length / 2), 0, z_pos) * ear_geom
             )
+            self.right_mount.label = "SG9 Servo Right Mount"
+            self.children += tuple(self.right_mount)
         else:
             self.right_mount = None
 
         self.top_of_gear_cover_face: Face = (
             final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
         )
-
-        # --- Assembly and Finishing ---
-        servo_shape = (
-            self.body
-            + final_shaft
-            + spline
-            + self.final_gear_cover
-            + self.penultimate_gear_cover
-            + self.left_mount
-            + self.right_mount
-        )
-        servo_shape -= screw_hole
+        print(self.children)
         self.final_shaft: Shape = final_shaft
         self.final_shaft.top_face = shaft_top_face
         self.final_shaft.radius = shaft_diameter / 2 + spline_depth
 
-        # Initialize the Part with the constructed shape
-        super().__init__(servo_shape.wrapped, **kwargs)
-        self.color = color
-
     def mounts(self):
-        pass  # Replace this with the actual implementation for the mounts method
+        children = self.children
+        left_mount = children.filter_left_mount if "left_mount" in children else None
+        right_mount = children.filter_right_mount if "right_mount" in children else None
 
-        return {"right_mount": self.right_mount, "left_mount": self.left_mount}
+        return {"right_mount": right_mount, "left_mount": left_mount}
 
 
 def _tapered_bar(
@@ -199,8 +212,8 @@ class SG9ServoHorn(Part):
 
     def __init__(
         self,
-        servo: SG9Servo,
-        horn_diameter = None,
+        servo: SG9Servo_Assembly,
+        horn_diameter=None,
         horn_length=20,
         horn_thickness=4,
         screw_hole_dia=2,
@@ -263,7 +276,7 @@ class SG9ServoHorn(Part):
 if __name__ == "__main__":
     from ocp_vscode import show
 
-    servo = SG9Servo(label="SG9 Servo")
+    servo = SG9Servo_Assembly(label="SG9 Servo")
     horn = SG9ServoHorn(servo, label="SG9 Servo Horn")
     horn.move(Location((0, 30, 0)))
     show(servo, horn)

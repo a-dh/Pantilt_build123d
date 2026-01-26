@@ -11,7 +11,7 @@ from build123d.objects_part import Box, Compound, Cylinder
 from ocp_vscode import show
 from ocp_vscode.config import Camera
 
-from pantilt_build123d.sg9_servo import SG9Servo, SG9ServoHorn
+from pantilt_build123d.sg9_servo import SG9Servo_Assembly, SG9ServoHorn
 
 
 def model_pan_static(mounting_plate: Shape = None):
@@ -33,7 +33,7 @@ def model_pan_static(mounting_plate: Shape = None):
     """
 
     ### the static portions of the pan acuator ###
-    servo1 = SG9Servo(color=Color("blue"))  # pan servo
+    servo1 = SG9Servo_Assembly(color=Color("blue"))  # pan servo
     servo1.label = "Pan Servo"
     body_to_cut = copy.deepcopy(servo1.body)
 
@@ -90,7 +90,7 @@ def model_pan_static(mounting_plate: Shape = None):
 
 
 def model_pan_to_tilt_assembly(
-    static_bearing_offset: float, bearing_diameter: float, pan_servo: SG9Servo
+    static_bearing_offset: float, bearing_diameter: float, pan_servo: SG9Servo_Assembly
 ):
     """
     builds the  model of the pan_to_tilt_assembly
@@ -161,7 +161,7 @@ def model_pan_to_tilt_assembly(
 
 
     # tilt servo
-    servo2 = SG9Servo(color=Color("lightblue"), right_mount=False)  # tilt servo
+    servo2 = SG9Servo_Assembly(color=Color("lightblue"), right_mount=False)  # tilt servo
     servo2.label = "Tilt Servo"
     servo2 = (
         servo2.rotate(Axis.Z, 90).rotate(Axis.X, 90).rotate(Axis.Z, 180)
