@@ -1,5 +1,11 @@
 # Pan-Tilt Project Rules
 
+## Design priorities (in order)
+
+1. **Minimise centre of gravity** of all panned/tilted mass — every design decision should prefer lower CofG first.
+2. **X/Y compactness** — minimise the footprint of the assembly in the horizontal plane.
+3. All other constraints below apply within these priorities.
+
 ## Mechanical design constraints
 
 - **Tilt axis as low as possible** — minimise Z distance between the tilt servo's shaft and the top of servo1's shaft.

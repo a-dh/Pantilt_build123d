@@ -82,10 +82,13 @@ class SG9Servo(Part):
         spline = Compound(teeth_list)
 
         # --- Gear Covers ---
-        final_gear_cover = Cylinder(radius=servo_width / 2, height=cover_height)
+        final_gear_cover_radius = servo_width / 2
+        final_gear_cover = Cylinder(radius=final_gear_cover_radius, height=cover_height)
         self.final_gear_cover = Pos(shaft_center_x, 0, servo_height / 2 + cover_height / 2) * final_gear_cover
 
-        penultimate_gear_cover = Cylinder(radius=servo_width / 4, height=cover_height)
+
+        pen_gear_cover_radius = servo_width / 4
+        penultimate_gear_cover = Cylinder(radius=pen_gear_cover_radius, height=cover_height)
         self.penultimate_gear_cover = Pos(shaft_center_x - servo_width / 2, 0, servo_height / 2 + cover_height / 2) * penultimate_gear_cover
 
         # --- Side Ears ---
@@ -114,6 +117,7 @@ class SG9Servo(Part):
         # Initialize the Part with the constructed shape
         super().__init__(servo_shape.wrapped, **kwargs)
         self.color = color
+        self.gear_boxes_radius = final_gear_cover_radius + pen_gear_cover_radius
 
     def mounts(self):
         """

@@ -34,27 +34,43 @@ if __name__ == "__main__":
 
     body_to_cut = copy.deepcopy(servo1.body)
 
-
+    shaft_center_x = servo1.horn_mount.position.X               # pan rotation axis X (default 5.0)
+    gear_cover_top_z = servo1.body_height / 2 + servo1.gear_cover_height  # 16.5
+    plate_z = top_of_mount_face.center().Z                      # Z of mount-ear top face (≈ 6.5)
     plate_size = servo1.bounding_box().diagonal
+
+    # Host mounting plate — centred on pan shaft axis, body slot cut in world space
     mounting_plate_on_host = Box(plate_size, plate_size, 2.5,
                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
-    mounting_plate_on_host.color = Color("gray")
-    mpoh_bottom_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    translation_vector = top_of_mount_face.center() - mpoh_bottom_face.center()
-    translation_vector.X = 0
-    translation_vector.Y = 0
+    mounting_plate_on_host = mounting_plate_on_host.move(Location((shaft_center_x, 0, plate_z)))
     mounting_plate_on_host = mounting_plate_on_host - body_to_cut
-    mounting_plate_on_host = mounting_plate_on_host.translate(translation_vector)
+    mounting_plate_on_host.color = Color("gray")
 
-    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    pan_static_bearing.color = color=Color("green")
-    pan_static_bearing = pan_static_bearing - body_to_cut
-    psb_bottom_face = pan_static_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0]
-    mpoh_top_face = mounting_plate_on_host.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1]
-    psb_translation_vector = mpoh_top_face.center() - psb_bottom_face.center()
-    psb_translation_vector.X = 0
-    psb_translation_vector.Y = 0
-    pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
+    # Pan swivel bearing — centred on pan shaft axis, annular (inner bore clears gear cover)
+    bearing_z = plate_z + 2.5
+    pan_static_bearing = Cylinder(radius=plate_size / 2, height=2.5,
+                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
+    pan_static_bearing = pan_static_bearing.move(Location((shaft_center_x, 0, bearing_z)))
+    inner_bore = Cylinder(radius=servo1.width / 2 + 1, height=3,
+                          align=(Align.CENTER, Align.CENTER, Align.MIN))
+    inner_bore = inner_bore.move(Location((shaft_center_x, 0, bearing_z - 0.5)))
+    pan_static_bearing = pan_static_bearing - inner_bore - body_to_cut
+    pan_static_bearing.color = Color("green")
 
-    show([servo1, servo2, ring, mounting_plate_on_host, pan_static_bearing],
-         reset_camera=Camera.KEEP)
+    # Upper thrust bearing sits directly on top of pan_static_bearing.
+    upper_bearing_z = bearing_z + 2.5  # top face of pan_static_bearing
+    upper_bearing_inner = Cylinder(
+        radius=servo1.gear_cover_clearance_radius + 0.2, height=2.5,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, upper_bearing_z)))
+    upper_bearing = Cylinder(
+        radius=20, height=2.5,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, upper_bearing_z)))
+    upper_bearing = upper_bearing - upper_bearing_inner
+    upper_bearing.color = Color("yellow")
+
+    show(
+        [servo1, servo2, ring, mounting_plate_on_host, pan_static_bearing, upper_bearing],
+        reset_camera=Camera.KEEP,
+    )
