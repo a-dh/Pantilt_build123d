@@ -1,4 +1,5 @@
 from pantilt_build123d.sg9_servo import SG9Servo
+from pantilt_build123d.sg9_servo_horn import SG9ServoHorn
 from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
@@ -67,40 +68,53 @@ if __name__ == "__main__":
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = upper_bearing - upper_bearing_inner
 
-    # Buildup box on top of the annulus to accept the servo horn arm.
-    # Horn arm points in +Y. Arm sits at gear_cover_top_z (16.5) and is ~2.5 mm thick.
-    horn_arm_thickness = 2.5
-    buildup_bottom = upper_bearing_z + 2.5                       # 14.0
-    buildup_top    = gear_cover_top_z + horn_arm_thickness        # 19.0
-    buildup_height = buildup_top - buildup_bottom                 # 5.0
+    # Instantiate horn model; save geometry params before move drops custom attrs.
+    _horn = SG9ServoHorn()
+    horn_arm_thickness    = _horn.arm_thickness        # 2.5
+    horn_hub_outer_radius = _horn.hub_outer_radius     # 4.0
+    arm_screw_y           = _horn.arm_hole_positions[-1]  # outermost hole, 15 mm
+    horn = _horn.move(Location((shaft_center_x, 0, gear_cover_top_z)))
+    horn.color = Color("lightgray")
+
+    buildup_bottom = upper_bearing_z + 2.5                        # 14.0
+    buildup_top    = gear_cover_top_z + horn_arm_thickness         # 19.0
+    buildup_height = buildup_top - buildup_bottom                  # 5.0
 
     # Box: 14 mm wide in X (centred on shaft), extends +Y from 6 mm behind shaft
     buildup = Box(14, 26, buildup_height,
                   align=(Align.CENTER, Align.MIN, Align.MIN))
     buildup = buildup.move(Location((shaft_center_x, -6, buildup_bottom)))
 
-    # Horn arm pocket: open-top slot in +Y, 2.5 mm deep from buildup_top, 5 mm wide in X
+    # Horn arm pocket: bottom flush with horn arm bottom (gear_cover_top_z),
+    # depth = arm_thickness, slot 5 mm wide in X pointing +Y.
     horn_pocket = Box(5, 27, horn_arm_thickness,
                       align=(Align.CENTER, Align.MIN, Align.MIN))
     horn_pocket = horn_pocket.move(Location((shaft_center_x, -6.5, gear_cover_top_z)))
 
-    # M2 screw through one of the horn arm holes (~12 mm from shaft centre in +Y)
+    # M2 screw hole aligned with outermost horn arm hole (arm_screw_y in +Y)
     arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,
                               align=(Align.CENTER, Align.CENTER, Align.MIN))
-    arm_screw_hole = arm_screw_hole.move(Location((shaft_center_x, 12, buildup_bottom - 0.5)))
+    arm_screw_hole = arm_screw_hole.move(Location((shaft_center_x, arm_screw_y, buildup_bottom - 0.5)))
 
-    # Gear cover clearance: cut the buildup where the gear cover protrudes (Z=14..16.5)
+    # Gear cover clearance: removes material where gear covers protrude into buildup (Z=14..16.5)
     gear_cover_clearance = Cylinder(
         radius=servo1.gear_cover_clearance_radius + 0.2,
         height=gear_cover_top_z - buildup_bottom + 0.1,
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, buildup_bottom)))
 
-    buildup = buildup - horn_pocket - arm_screw_hole - gear_cover_clearance
+    # Hub clearance: the horn hub wraps the shaft above the gear cover (Z=16.5..19)
+    hub_clearance = Cylinder(
+        radius=horn_hub_outer_radius + 0.3,
+        height=buildup_top - gear_cover_top_z + 0.1,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, gear_cover_top_z - 0.05)))
+
+    buildup = buildup - horn_pocket - arm_screw_hole - gear_cover_clearance - hub_clearance
     upper_bearing = upper_bearing + buildup
     upper_bearing.color = Color("yellow")
 
     show(
-        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing],
+        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn],
         reset_camera=Camera.KEEP,
     )
