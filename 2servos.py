@@ -1,5 +1,4 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from pantilt_build123d.upper_swivel_ring import UpperSwivelRing
 from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
@@ -13,15 +12,13 @@ from ocp_vscode import show
 if __name__ == "__main__":
     servo1 = SG9Servo(color=Color("blue")) # pan servo
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
-    
+
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
     servo2 = servo2.move(Location((servo2.width/2 +
                                     servo1.gear_cover_clearance_radius + 2,
-                                        0, 0))) # Move out to bracket face; no Z offset needed
-    
-    ring = UpperSwivelRing(servo1)
+                                        0, 10.0))) # +10 Z clears upper_bearing buildup
 
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
@@ -57,8 +54,9 @@ if __name__ == "__main__":
     pan_static_bearing = pan_static_bearing - inner_bore - body_to_cut
     pan_static_bearing.color = Color("green")
 
-    # Upper thrust bearing sits directly on top of pan_static_bearing.
-    upper_bearing_z = bearing_z + 2.5  # top face of pan_static_bearing
+    # Upper thrust bearing — annular ring sitting on top of pan_static_bearing.
+    # This is the rotating part; it is keyed to servo1's shaft via a horn arm pocket.
+    upper_bearing_z = bearing_z + 2.5  # bottom = top face of pan_static_bearing
     upper_bearing_inner = Cylinder(
         radius=servo1.gear_cover_clearance_radius + 0.2, height=2.5,
         align=(Align.CENTER, Align.CENTER, Align.MIN),
@@ -68,9 +66,41 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = upper_bearing - upper_bearing_inner
+
+    # Buildup box on top of the annulus to accept the servo horn arm.
+    # Horn arm points in +Y. Arm sits at gear_cover_top_z (16.5) and is ~2.5 mm thick.
+    horn_arm_thickness = 2.5
+    buildup_bottom = upper_bearing_z + 2.5                       # 14.0
+    buildup_top    = gear_cover_top_z + horn_arm_thickness        # 19.0
+    buildup_height = buildup_top - buildup_bottom                 # 5.0
+
+    # Box: 14 mm wide in X (centred on shaft), extends +Y from 6 mm behind shaft
+    buildup = Box(14, 26, buildup_height,
+                  align=(Align.CENTER, Align.MIN, Align.MIN))
+    buildup = buildup.move(Location((shaft_center_x, -6, buildup_bottom)))
+
+    # Horn arm pocket: open-top slot in +Y, 2.5 mm deep from buildup_top, 5 mm wide in X
+    horn_pocket = Box(5, 27, horn_arm_thickness,
+                      align=(Align.CENTER, Align.MIN, Align.MIN))
+    horn_pocket = horn_pocket.move(Location((shaft_center_x, -6.5, gear_cover_top_z)))
+
+    # M2 screw through one of the horn arm holes (~12 mm from shaft centre in +Y)
+    arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,
+                              align=(Align.CENTER, Align.CENTER, Align.MIN))
+    arm_screw_hole = arm_screw_hole.move(Location((shaft_center_x, 12, buildup_bottom - 0.5)))
+
+    # Gear cover clearance: cut the buildup where the gear cover protrudes (Z=14..16.5)
+    gear_cover_clearance = Cylinder(
+        radius=servo1.gear_cover_clearance_radius + 0.2,
+        height=gear_cover_top_z - buildup_bottom + 0.1,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, buildup_bottom)))
+
+    buildup = buildup - horn_pocket - arm_screw_hole - gear_cover_clearance
+    upper_bearing = upper_bearing + buildup
     upper_bearing.color = Color("yellow")
 
     show(
-        [servo1, servo2, ring, mounting_plate_on_host, pan_static_bearing, upper_bearing],
+        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing],
         reset_camera=Camera.KEEP,
     )
