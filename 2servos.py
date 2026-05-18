@@ -1,4 +1,5 @@
 from pantilt_build123d.sg9_servo import SG9Servo
+from pantilt_build123d.upper_swivel_ring import UpperSwivelRing
 from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
@@ -18,9 +19,10 @@ if __name__ == "__main__":
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
     servo2 = servo2.move(Location((servo2.width/2 +
                                     servo1.gear_cover_clearance_radius + 2,
-                                        0,
-                                        servo1.gear_cover_height +0.25))) # Move out to avoid collision
+                                        0, 0))) # Move out to bracket face; no Z offset needed
     
+    ring = UpperSwivelRing(servo1)
+
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
         raise ValueError("At least one mount (left or right) must be present on the pan servo for mounting the tilt servo.")
@@ -54,5 +56,5 @@ if __name__ == "__main__":
     psb_translation_vector.Y = 0
     pan_static_bearing = pan_static_bearing.translate(psb_translation_vector)
 
-    show([servo1, servo2, mounting_plate_on_host, pan_static_bearing],
+    show([servo1, servo2, ring, mounting_plate_on_host, pan_static_bearing],
          reset_camera=Camera.KEEP)
