@@ -15,11 +15,12 @@ if __name__ == "__main__":
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
     servo2 = SG9Servo(color=Color("lightblue"), right_mount=False) # tilt servo
+    _servo2_width = servo2.width  # save before rotate drops custom attrs
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((servo2.width/2 +
-                                    servo1.gear_cover_clearance_radius + 2,
-                                        0, 10.0))) # +10 Z clears upper_bearing buildup
+    servo2 = servo2.move(Location((_servo2_width/2 +
+                                    servo1.gear_cover_clearance_radius + 1,
+                                        0, 0)))  # X offset only; Z snapped to upper_bearing below
 
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
@@ -63,10 +64,15 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = Cylinder(
-        radius=20, height=2.5,
+        radius=plate_size / 2, height=2.5,
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = upper_bearing - upper_bearing_inner
+
+    # Snap servo2 bottom face onto upper_bearing top face
+    ub_top_z = upper_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1].center().Z
+    s2_bot_z = servo2.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0].center().Z
+    servo2   = servo2.move(Location((0, 0, ub_top_z - s2_bot_z)))
 
     # Instantiate horn model; save geometry params before move drops custom attrs.
     _horn = SG9ServoHorn()
