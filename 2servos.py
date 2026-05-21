@@ -224,7 +224,22 @@ if __name__ == "__main__":
     servo2_bracket = outer - cavity - screw_hole - gc_clearance - rod_bore
     servo2_bracket.color = Color("orange")
 
+    # Counter-shaft rod: 3mm smooth rod seated in boss bore, 4mm proud of boss tip
+    rod2 = Cylinder(radius=rod_d / 2,
+                    height=(b_max_y + boss_len + 4.0) - (s2_bb.max.Y + 0.1),
+                    align=(Align.CENTER, Align.CENTER, Align.MIN))
+    rod2 = rod2.rotate(Axis.X, -90)          # axis in +Y
+    rod2 = rod2.move(Location((s2_cx, s2_bb.max.Y + 0.1, shaft_axis_z)))
+    rod2.color = Color("silver")
+
+    # Servo2 horn: hub points in -Y (servo2 shaft direction), arm extends in +Z
+    servo2_gear_cover_top_y = -(servo1.body_height / 2 + servo1.gear_cover_height)  # = -16.5
+    horn2 = SG9ServoHorn()
+    horn2 = horn2.rotate(Axis.X, 90)   # +Z hub → -Y, +Y arm → +Z
+    horn2 = horn2.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
+    horn2.color = Color("lightgray")
+
     show(
-        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket],
+        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2],
         reset_camera=Camera.KEEP,
     )
