@@ -245,17 +245,34 @@ if __name__ == "__main__":
     tilt_plate_y = horn_arm_thickness + _tb_clr + wall_t  # pocket depth + floor = 5.2 mm
     horn_arm_neg_y = servo2_gear_cover_top_y - horn_hub_height  # -Y face of horn arm = -24.0
 
-    tb_x_max = s2_cx - 5.0           # +X end: 5 mm from servo2 shaft = 15.2
+    tb_x_max = s2_cx + 5.0           # +X end: 5 mm past servo2 shaft = 25.2
     tb_x_min = tb_x_max - 40.0       # -X end = -24.8
 
     tilt_plate = Box(40, tilt_plate_y, 10,
                      align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
 
-    # Horn arm pocket: rectangular slot open at -Y and both X faces, clearing full arm width
-    arm_pocket = Box(41, horn_arm_thickness + _tb_clr, 2 * (horn_hub_outer_radius + _tb_clr),
-                     align=(Align.MIN, Align.MIN, Align.CENTER))
-    arm_pocket = arm_pocket.move(Location((tb_x_min - 0.5, horn_arm_neg_y, shaft_axis_z)))
+    # Horn arm pocket: tapered trapezoid matching arm profile, extruded in +Y from -Y face
+    _hw_hub = horn_hub_outer_radius + _tb_clr   # Z half-width at hub end = 4.2
+    _hw_tip = horn_arm_width / 2 + _tb_clr      # Z half-width at tip     = 2.2
+    _ph     = horn_arm_thickness + _tb_clr       # pocket depth in Y        = 2.7
+    _pocket_y = horn_arm_neg_y - 0.1   # overshoot -Y face for clean boolean
+    arm_pocket = extrude(
+        Face(Wire.make_polygon([
+            Vector(s2_cx + _tb_clr,           shaft_axis_z - _hw_hub, _pocket_y),
+            Vector(s2_cx + _tb_clr,           shaft_axis_z + _hw_hub, _pocket_y),
+            Vector(s2_cx - horn_arm_length,   shaft_axis_z + _hw_tip, _pocket_y),
+            Vector(s2_cx - horn_arm_length,   shaft_axis_z - _hw_tip, _pocket_y),
+        ])),
+        _ph + 0.1,
+    )
+    arm_pocket_cap = Cylinder(radius=_hw_tip, height=_ph + 0.1,
+                              align=(Align.CENTER, Align.CENTER, Align.MIN))
+    arm_pocket_cap = arm_pocket_cap.rotate(Axis.X, -90)
+    arm_pocket_cap = arm_pocket_cap.move(
+        Location((s2_cx - horn_arm_length, _pocket_y, shaft_axis_z))
+    )
+    arm_pocket = arm_pocket + arm_pocket_cap
 
     tilt_plate = tilt_plate - arm_pocket
     tilt_plate.color = Color("cyan")
