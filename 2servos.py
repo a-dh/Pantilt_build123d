@@ -18,9 +18,8 @@ if __name__ == "__main__":
     _servo2_width = servo2.width  # save before rotate drops custom attrs
     servo2 = servo2.rotate(Axis.Z,90).rotate(Axis.X,90)  # Rotate for tilting
     servo2 = servo1.horn_mount * servo2 # Move up to tilting position
-    servo2 = servo2.move(Location((_servo2_width/2 +
-                                    servo1.gear_cover_clearance_radius + 1,
-                                        0, 0)))  # X offset only; Z snapped to upper_bearing below
+    servo2 = servo2.move(Location((servo1.gear_cover_clearance_radius + 0.2 + _servo2_width/2,
+                                        0, 0)))  # -X face at edge of gear cover clearance bore
 
     mounts = servo1.mounts()
     if mounts["left_mount"] is None and  mounts["right_mount"] is None:
