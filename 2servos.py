@@ -10,6 +10,66 @@ import copy
 
 from ocp_vscode import show
 
+def make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
+                     horn_arm_thickness, horn_arm_length, arm_bottom_z,
+                     pocket_clearance=0.2):
+    """Create a tapered horn arm pocket with a circular cap at the tip.
+
+    The pocket is built as a trapezoidal extrusion from the horn's base at the
+    servo shaft axis to the tip of the horn arm. A circular cap is added at the
+    end of the extrusion to match the rounded profile of a standard SG90/SG9
+    servo horn arm.
+
+    Parameters:
+        shaft_center_x (float): X coordinate of the servo shaft axis in world
+            coordinates. This anchors the horn pocket relative to the pan servo.
+        horn_hub_outer_radius (float): Outer radius of the horn hub. The pocket
+            base is offset by this radius plus clearance.
+        horn_arm_width (float): Full width of the horn arm at its tip. The pocket
+            tip half-width is computed from half the arm width plus clearance.
+        horn_arm_thickness (float): Thickness of the horn arm. The pocket is
+            extruded by this amount plus a small extra allowance.
+        horn_arm_length (float): Length of the horn arm from the shaft axis to the
+            tip. This defines the Y extent of the trapezoidal pocket.
+        arm_bottom_z (float): Z coordinate of the bottom face of the horn arm.
+            The pocket is created at this vertical position.
+        pocket_clearance (float, optional): Radial clearance added around the
+            horn geometry to ensure the pocket is slightly larger than the horn.
+            Defaults to 0.2.
+
+    Returns:
+        Solid: A Build123D solid representing the pocket volume, suitable for
+        subtractive boolean operations against a horn mount or housing.
+    """
+    _pocket_clr = pocket_clearance
+    _hw_base = horn_hub_outer_radius + _pocket_clr
+    _hw_tip = horn_arm_width / 2 + _pocket_clr
+    horn_top_to_pocket_top = 0.2  # small extra clearance to ensure the pocket fully contains the horn arm thickness at the top face
+    _ph = horn_arm_thickness + horn_top_to_pocket_top
+    horn_pocket = extrude(
+        Face(Wire.make_polygon([
+            Vector(shaft_center_x - _hw_base, -0.5,            arm_bottom_z),
+            Vector(shaft_center_x + _hw_base, -0.5,            arm_bottom_z),
+            Vector(shaft_center_x + _hw_tip,  horn_arm_length, arm_bottom_z),
+            Vector(shaft_center_x - _hw_tip,  horn_arm_length, arm_bottom_z),
+        ])),
+        _ph,
+    )
+    horn_pocket_cap = Cylinder(radius=_hw_tip, height=_ph + horn_top_to_pocket_top,
+                               align=(Align.CENTER, Align.CENTER, Align.MIN))
+    horn_pocket_cap = horn_pocket_cap.move(Location((shaft_center_x, horn_arm_length, arm_bottom_z - 0.05)))
+    horn_pocket =horn_pocket + horn_pocket_cap
+    
+    # Hub clearance: full horn hub height above gear cover (Z=16.5..24.0)
+    hub_clearance = Cylinder(
+        radius=horn_hub_outer_radius + 0.3,
+        height=horn_hub_height + 0.1,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, gear_cover_top_z - 0.05)))
+    horn_pocket = horn_pocket + hub_clearance
+    
+    return horn_pocket
+
 if __name__ == "__main__":
     servo1 = SG9Servo(color=Color("blue")) # pan servo
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
@@ -96,25 +156,10 @@ if __name__ == "__main__":
                   align=(Align.CENTER, Align.CENTER, Align.MIN))
     buildup = buildup.move(Location((shaft_center_x, 0, buildup_bottom)))
 
-    # Horn arm pocket: tapered to match arm + circular cap at tip
-    _pocket_clr = 0.2  # clearance each side
-    _hw_base = horn_hub_outer_radius + _pocket_clr   # half-width at hub end
-    _hw_tip  = horn_arm_width / 2    + _pocket_clr   # half-width at tip
-    _ph      = horn_arm_thickness + 0.1              # pocket extrusion height
-    horn_pocket = extrude(
-        Face(Wire.make_polygon([
-            Vector(shaft_center_x - _hw_base, -0.5,            arm_bottom_z),
-            Vector(shaft_center_x + _hw_base, -0.5,            arm_bottom_z),
-            Vector(shaft_center_x + _hw_tip,  horn_arm_length, arm_bottom_z),
-            Vector(shaft_center_x - _hw_tip,  horn_arm_length, arm_bottom_z),
-        ])),
-        _ph,
-    )
-    horn_pocket_cap = Cylinder(radius=_hw_tip, height=_ph,
-                               align=(Align.CENTER, Align.CENTER, Align.MIN))
-    horn_pocket_cap = horn_pocket_cap.move(Location((shaft_center_x, horn_arm_length, arm_bottom_z - 0.05)))
-    horn_pocket = horn_pocket + horn_pocket_cap
-
+    horn_pocket = make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
+                     horn_arm_thickness, horn_arm_length, arm_bottom_z,
+                     pocket_clearance=0.2)
+    
     # M2 screw hole aligned with outermost horn arm hole (arm_screw_y in +Y)
     arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,
                               align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -127,14 +172,9 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, buildup_bottom)))
 
-    # Hub clearance: full horn hub height above gear cover (Z=16.5..24.0)
-    hub_clearance = Cylinder(
-        radius=horn_hub_outer_radius + 0.3,
-        height=horn_hub_height + 0.1,
-        align=(Align.CENTER, Align.CENTER, Align.MIN),
-    ).move(Location((shaft_center_x, 0, gear_cover_top_z - 0.05)))
 
-    buildup = buildup - horn_pocket - arm_screw_hole - gear_cover_clearance - hub_clearance
+
+    buildup = buildup - horn_pocket - arm_screw_hole - gear_cover_clearance
     upper_bearing = upper_bearing + buildup
     upper_bearing.color = Color("yellow")
 
@@ -252,34 +292,19 @@ if __name__ == "__main__":
                      align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
 
-    # Horn arm pocket: tapered trapezoid matching arm profile, extruded in +Y from -Y face
-    _hw_hub = horn_hub_outer_radius + _tb_clr   # Z half-width at hub end = 4.2
-    _hw_tip = horn_arm_width / 2 + _tb_clr      # Z half-width at tip     = 2.2
-    _ph     = horn_arm_thickness + _tb_clr       # pocket depth in Y        = 2.7
-    _pocket_y = horn_arm_neg_y - 0.1   # overshoot -Y face for clean boolean
-    arm_pocket = extrude(
-        Face(Wire.make_polygon([
-            Vector(s2_cx + _tb_clr,           shaft_axis_z - _hw_hub, _pocket_y),
-            Vector(s2_cx + _tb_clr,           shaft_axis_z + _hw_hub, _pocket_y),
-            Vector(s2_cx - horn_arm_length,   shaft_axis_z + _hw_tip, _pocket_y),
-            Vector(s2_cx - horn_arm_length,   shaft_axis_z - _hw_tip, _pocket_y),
-        ])),
-        _ph + 0.1,
-    )
-    arm_pocket_cap = Cylinder(radius=_hw_tip, height=_ph + 0.1,
-                              align=(Align.CENTER, Align.CENTER, Align.MIN))
-    arm_pocket_cap = arm_pocket_cap.rotate(Axis.X, -90)
-    arm_pocket_cap = arm_pocket_cap.move(
-        Location((s2_cx - horn_arm_length, _pocket_y, shaft_axis_z))
-    )
-    arm_pocket = arm_pocket + arm_pocket_cap
+    arm_pocket = make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
+                        horn_arm_thickness, horn_arm_length, arm_bottom_z,
+                        pocket_clearance=0.2)
+    arm_pocket = arm_pocket.rotate(Axis.X, 90)    # hub → -Y, arm → +Z
+    arm_pocket = arm_pocket.rotate(Axis.Y, -90)   # arm → -X horizontal
+    arm_pocket = arm_pocket.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
 
     tilt_plate = tilt_plate - arm_pocket
     tilt_plate.color = Color("cyan")
 
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate,
-        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_swivel_ring",
-               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate"],
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate, arm_pocket,
+        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bearing",
+               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate", "arm_pocket"],
         reset_camera=Camera.KEEP,
     )
