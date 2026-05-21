@@ -91,10 +91,11 @@ if __name__ == "__main__":
     buildup_top    = gear_cover_top_z + horn_hub_height                         # 24.0
     buildup_height = buildup_top - buildup_bottom                               # 10.0
 
-    # Box: 14 mm wide in X (centred on shaft), extends +Y from 6 mm behind shaft
-    buildup = Box(14, 26, buildup_height,
-                  align=(Align.CENTER, Align.MIN, Align.MIN))
-    buildup = buildup.move(Location((shaft_center_x, -6, buildup_bottom)))
+    # Box: 14 mm wide in X, symmetric in Y to contain the full double-ended arm
+    _buildup_half_y = horn_arm_length + horn_arm_width / 2 + 1   # 20 mm
+    buildup = Box(14, 2 * _buildup_half_y, buildup_height,
+                  align=(Align.CENTER, Align.CENTER, Align.MIN))
+    buildup = buildup.move(Location((shaft_center_x, 0, buildup_bottom)))
 
     # Horn arm pocket: tapered to match arm + circular cap at tip
     _pocket_clr = 0.2  # clearance each side
