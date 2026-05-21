@@ -239,8 +239,8 @@ if __name__ == "__main__":
     tilt_plate.color = Color("cyan")
 
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate, arm_pocket,
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate,
         names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bearing",
-               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate", "arm_pocket"],
+               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate"],
         reset_camera=Camera.KEEP,
     )
