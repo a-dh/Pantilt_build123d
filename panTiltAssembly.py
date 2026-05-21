@@ -98,9 +98,17 @@ if __name__ == "__main__":
                   align=(Align.CENTER, Align.CENTER, Align.MIN))
     buildup = buildup.move(Location((shaft_center_x, 0, buildup_bottom)))
 
-    horn_pocket = make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
-                     horn_arm_thickness, horn_arm_length, arm_bottom_z,
-                     pocket_clearance=0.2)
+    horn_pocket = make_horn_pocket(
+        shaft_center_x,
+        horn_hub_outer_radius,
+        horn_arm_width,
+        horn_arm_thickness,
+        horn_arm_length,
+        arm_bottom_z,
+        pocket_clearance=0.2,
+        gear_cover_top_z=gear_cover_top_z,
+        horn_hub_height=horn_hub_height,
+    )
     
     # M2 screw hole aligned with outermost horn arm hole (arm_screw_y in +Y)
     arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,
