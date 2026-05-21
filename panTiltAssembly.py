@@ -1,5 +1,5 @@
 from pantilt_build123d.sg9_servo import SG9Servo
-from pantilt_build123d.sg9_servo_horn import SG9ServoHorn
+from pantilt_build123d.sg9_servo_horn import SG9ServoHorn, SG9ServoHornPocket
 from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
@@ -9,8 +9,6 @@ from ocp_vscode.config import Camera
 import copy
 
 from ocp_vscode import show
-
-from pantilt_build123d.sg9_servo_horn import make_horn_pocket
 
 if __name__ == "__main__":
     servo1 = SG9Servo(color=Color("blue")) # pan servo
@@ -98,17 +96,7 @@ if __name__ == "__main__":
                   align=(Align.CENTER, Align.CENTER, Align.MIN))
     buildup = buildup.move(Location((shaft_center_x, 0, buildup_bottom)))
 
-    horn_pocket = make_horn_pocket(
-        shaft_center_x,
-        horn_hub_outer_radius,
-        horn_arm_width,
-        horn_arm_thickness,
-        horn_arm_length,
-        arm_bottom_z,
-        pocket_clearance=0.2,
-        gear_cover_top_z=gear_cover_top_z,
-        horn_hub_height=horn_hub_height,
-    )
+    horn_pocket = SG9ServoHornPocket(horn, clearance=0.2, extra_depth=0.2)
     
     # M2 screw hole aligned with outermost horn arm hole (arm_screw_y in +Y)
     arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,
@@ -242,9 +230,7 @@ if __name__ == "__main__":
                      align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
 
-    arm_pocket = make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
-                        horn_arm_thickness, horn_arm_length, arm_bottom_z,
-                        pocket_clearance=0.2)
+    arm_pocket = SG9ServoHornPocket(SG9ServoHorn(), clearance=0.2, extra_depth=0.2)
     arm_pocket = arm_pocket.rotate(Axis.X, 90)    # hub → -Y, arm → +Z
     arm_pocket = arm_pocket.rotate(Axis.Y, -90)   # arm → -X horizontal
     arm_pocket = arm_pocket.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
