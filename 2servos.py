@@ -199,7 +199,7 @@ if __name__ == "__main__":
     # cylinder used in the upper bearing so the -X wall clears servo1's gear cover.
     gc_clearance = Cylinder(
         radius=servo1.gear_cover_clearance_radius + 0.2,
-        height=b_max_z - b_min_z + 0.2,
+        height=gear_cover_top_z - b_min_z + 0.1,
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, b_min_z)))
 
