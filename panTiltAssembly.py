@@ -1,6 +1,6 @@
 from pantilt_build123d.sg9_servo import SG9Servo
 from pantilt_build123d.sg9_servo_horn import SG9ServoHorn, SG9ServoHornPocket
-from build123d import Location, Box, Align, Cylinder
+from build123d import Location, Box, Align, Cylinder, RevoluteJoint, RigidJoint
 from build123d.geometry import (
     Axis,
     Color,
@@ -67,6 +67,21 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = upper_bearing - upper_bearing_inner
+
+    # Kinematic joint for the pan shaft: servo1 drives the upper bearing.
+    pan_shaft_location = Location(servo1.horn_mount.position)
+    pan_joint = RevoluteJoint(
+        "pan_shaft",
+        to_part=servo1,
+        axis=Axis(pan_shaft_location.position, (0, 0, 1)),
+        angle_reference=(1, 0, 0),
+    )
+    upper_bearing_joint = RigidJoint(
+        "upper_bearing_rigid",
+        to_part=upper_bearing,
+        joint_location=pan_shaft_location,
+    )
+    pan_joint.connect_to(upper_bearing_joint, angle=0)
 
     # Snap servo2 bottom face onto upper_bearing top face
     ub_top_z = upper_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1].center().Z
@@ -237,6 +252,21 @@ if __name__ == "__main__":
 
     tilt_plate = tilt_plate - arm_pocket
     tilt_plate.color = Color("cyan")
+
+    # Kinematic joint for the tilt shaft: servo2 drives the tilt plate.
+    servo2_horn_global = servo2.location * servo2.horn_mount
+    tilt_joint = RevoluteJoint(
+        "tilt_shaft",
+        to_part=servo2,
+        axis=Axis(servo2_horn_global.position, (0, 1, 0)),
+        angle_reference=(0, 0, 1),
+    )
+    tilt_plate_joint = RigidJoint(
+        "tilt_plate_rigid",
+        to_part=tilt_plate,
+        joint_location=servo2_horn_global,
+    )
+    tilt_joint.connect_to(tilt_plate_joint, angle=0)
 
     show(
         servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate,
