@@ -177,7 +177,25 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.MIN, Align.MIN),
     ).move(Location((s2_cx, b_min_y, cap_z_start)))
 
-    outer = outer_lower + outer_cap
+    # Counter-shaft boss: 3 mm smooth rod, collinear with servo2's output shaft
+    rod_d = 3.0
+    boss_r = rod_d / 2 + wall_t                      # 4.0 mm outer radius
+    boss_len = 6.0 - wall_t                           # protrusion beyond +Y wall so total bore depth = 6 mm
+    shaft_axis_z = s2_bb.min.Z + shaft_center_x + servo1.length / 2  # = 30.0
+
+    boss = Cylinder(radius=boss_r, height=boss_len,
+                    align=(Align.CENTER, Align.CENTER, Align.MIN))
+    boss = boss.rotate(Axis.X, -90)                  # axis in +Y
+    boss = boss.move(Location((s2_cx, b_max_y, shaft_axis_z)))
+
+    # Bore sized for press-fit 3 mm rod; use rod_d/2 and calibrate slicer tolerance
+    rod_bore = Cylinder(radius=rod_d / 2,
+                        height=boss_len + wall_t + 0.1,
+                        align=(Align.CENTER, Align.CENTER, Align.MIN))
+    rod_bore = rod_bore.rotate(Axis.X, -90)
+    rod_bore = rod_bore.move(Location((s2_cx, b_max_y - wall_t - 0.05, shaft_axis_z)))
+
+    outer = outer_lower + outer_cap + boss
 
     # Ear slot cavity: removes inner material of lower section except ±X and +Y walls
     cav_y = b_max_y - b_min_y - wall_t + 1.0         # overshoot -Y by 1 mm for clean boolean
@@ -203,7 +221,7 @@ if __name__ == "__main__":
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     ).move(Location((shaft_center_x, 0, b_min_z)))
 
-    servo2_bracket = outer - cavity - screw_hole - gc_clearance
+    servo2_bracket = outer - cavity - screw_hole - gc_clearance - rod_bore
     servo2_bracket.color = Color("orange")
 
     show(
