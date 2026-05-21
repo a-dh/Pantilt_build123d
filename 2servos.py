@@ -1,6 +1,6 @@
 from pantilt_build123d.sg9_servo import SG9Servo
 from pantilt_build123d.sg9_servo_horn import SG9ServoHorn
-from build123d import Location, Box, Align, Cylinder
+from build123d import Location, Box, Align, Cylinder, Face, Wire, Vector, extrude
 from build123d.geometry import (
     Axis,
     Color,
@@ -77,6 +77,8 @@ if __name__ == "__main__":
     # Instantiate horn model; save geometry params before move drops custom attrs.
     _horn = SG9ServoHorn()
     horn_arm_thickness    = _horn.arm_thickness        # 2.5
+    horn_arm_width        = _horn.arm_width            # 4.0
+    horn_arm_length       = _horn.arm_length           # 17.0
     horn_hub_height       = _horn.hub_height           # 7.5
     horn_hub_outer_radius = _horn.hub_outer_radius     # 4.0
     arm_screw_y           = _horn.arm_hole_positions[-1]  # outermost hole, 15 mm
@@ -94,10 +96,24 @@ if __name__ == "__main__":
                   align=(Align.CENTER, Align.MIN, Align.MIN))
     buildup = buildup.move(Location((shaft_center_x, -6, buildup_bottom)))
 
-    # Horn arm pocket: bottom at arm_bottom_z, top at buildup_top, 5 mm wide in X
-    horn_pocket = Box(5, 27, horn_arm_thickness,
-                      align=(Align.CENTER, Align.MIN, Align.MIN))
-    horn_pocket = horn_pocket.move(Location((shaft_center_x, -6.5, arm_bottom_z)))
+    # Horn arm pocket: tapered to match arm + circular cap at tip
+    _pocket_clr = 0.2  # clearance each side
+    _hw_base = horn_hub_outer_radius + _pocket_clr   # half-width at hub end
+    _hw_tip  = horn_arm_width / 2    + _pocket_clr   # half-width at tip
+    _ph      = horn_arm_thickness + 0.1              # pocket extrusion height
+    horn_pocket = extrude(
+        Face(Wire.make_polygon([
+            Vector(shaft_center_x - _hw_base, -0.5,            arm_bottom_z),
+            Vector(shaft_center_x + _hw_base, -0.5,            arm_bottom_z),
+            Vector(shaft_center_x + _hw_tip,  horn_arm_length, arm_bottom_z),
+            Vector(shaft_center_x - _hw_tip,  horn_arm_length, arm_bottom_z),
+        ])),
+        _ph,
+    )
+    horn_pocket_cap = Cylinder(radius=_hw_tip, height=_ph,
+                               align=(Align.CENTER, Align.CENTER, Align.MIN))
+    horn_pocket_cap = horn_pocket_cap.move(Location((shaft_center_x, horn_arm_length, arm_bottom_z - 0.05)))
+    horn_pocket = horn_pocket + horn_pocket_cap
 
     # M2 screw hole aligned with outermost horn arm hole (arm_screw_y in +Y)
     arm_screw_hole = Cylinder(radius=1.1, height=buildup_height + 1,

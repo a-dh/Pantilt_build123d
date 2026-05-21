@@ -43,6 +43,7 @@ class SG9ServoHorn(Part):
         self.hub_height = hub_height
         self.shaft_engage_depth = shaft_engage_depth
         self.arm_thickness = arm_thickness
+        self.arm_width = arm_width
         self.arm_length = arm_length
         self.arm_hole_positions = arm_hole_positions
 
@@ -52,10 +53,19 @@ class SG9ServoHorn(Part):
         hub = Cylinder(radius=hub_outer_radius, height=hub_height,
                        align=(Align.CENTER, Align.CENTER, Align.MIN))
 
-        # Arm top is flush with hub top; bottom at arm_bottom_z
-        arm = Box(arm_width, arm_length, arm_thickness,
-                  align=(Align.CENTER, Align.MIN, Align.MIN))
-        arm = arm.move(Location((0, 0, arm_bottom_z)))
+        # Arm: tapers from full hub diameter at base to arm_width at tip, +Y direction.
+        # Built as an extruded trapezoid plus a circular cap at the tip.
+        arm_face = Face(Wire.make_polygon([
+            Vector(-hub_outer_radius, 0, 0),
+            Vector( hub_outer_radius, 0, 0),
+            Vector( arm_width / 2,    arm_length, 0),
+            Vector(-arm_width / 2,    arm_length, 0),
+        ]))
+        arm_body = extrude(arm_face, arm_thickness).move(Location((0, 0, arm_bottom_z)))
+        arm_cap  = Cylinder(radius=arm_width / 2, height=arm_thickness,
+                            align=(Align.CENTER, Align.CENTER, Align.MIN))
+        arm_cap  = arm_cap.move(Location((0, arm_length, arm_bottom_z)))
+        arm = arm_body + arm_cap
 
         # --- Bores ---
         # Spline bore: fits over shaft splines from base up to shaft_engage_depth
