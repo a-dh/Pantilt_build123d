@@ -1,6 +1,6 @@
 from pantilt_build123d.sg9_servo import SG9Servo
 from pantilt_build123d.sg9_servo_horn import SG9ServoHorn
-from build123d import Location, Box, Align, Cylinder, Face, Wire, Vector, extrude
+from build123d import Location, Box, Align, Cylinder
 from build123d.geometry import (
     Axis,
     Color,
@@ -10,65 +10,7 @@ import copy
 
 from ocp_vscode import show
 
-def make_horn_pocket(shaft_center_x, horn_hub_outer_radius, horn_arm_width,
-                     horn_arm_thickness, horn_arm_length, arm_bottom_z,
-                     pocket_clearance=0.2):
-    """Create a tapered horn arm pocket with a circular cap at the tip.
-
-    The pocket is built as a trapezoidal extrusion from the horn's base at the
-    servo shaft axis to the tip of the horn arm. A circular cap is added at the
-    end of the extrusion to match the rounded profile of a standard SG90/SG9
-    servo horn arm.
-
-    Parameters:
-        shaft_center_x (float): X coordinate of the servo shaft axis in world
-            coordinates. This anchors the horn pocket relative to the pan servo.
-        horn_hub_outer_radius (float): Outer radius of the horn hub. The pocket
-            base is offset by this radius plus clearance.
-        horn_arm_width (float): Full width of the horn arm at its tip. The pocket
-            tip half-width is computed from half the arm width plus clearance.
-        horn_arm_thickness (float): Thickness of the horn arm. The pocket is
-            extruded by this amount plus a small extra allowance.
-        horn_arm_length (float): Length of the horn arm from the shaft axis to the
-            tip. This defines the Y extent of the trapezoidal pocket.
-        arm_bottom_z (float): Z coordinate of the bottom face of the horn arm.
-            The pocket is created at this vertical position.
-        pocket_clearance (float, optional): Radial clearance added around the
-            horn geometry to ensure the pocket is slightly larger than the horn.
-            Defaults to 0.2.
-
-    Returns:
-        Solid: A Build123D solid representing the pocket volume, suitable for
-        subtractive boolean operations against a horn mount or housing.
-    """
-    _pocket_clr = pocket_clearance
-    _hw_base = horn_hub_outer_radius + _pocket_clr
-    _hw_tip = horn_arm_width / 2 + _pocket_clr
-    horn_top_to_pocket_top = 0.2  # small extra clearance to ensure the pocket fully contains the horn arm thickness at the top face
-    _ph = horn_arm_thickness + horn_top_to_pocket_top
-    horn_pocket = extrude(
-        Face(Wire.make_polygon([
-            Vector(shaft_center_x - _hw_base, -0.5,            arm_bottom_z),
-            Vector(shaft_center_x + _hw_base, -0.5,            arm_bottom_z),
-            Vector(shaft_center_x + _hw_tip,  horn_arm_length, arm_bottom_z),
-            Vector(shaft_center_x - _hw_tip,  horn_arm_length, arm_bottom_z),
-        ])),
-        _ph,
-    )
-    horn_pocket_cap = Cylinder(radius=_hw_tip, height=_ph + horn_top_to_pocket_top,
-                               align=(Align.CENTER, Align.CENTER, Align.MIN))
-    horn_pocket_cap = horn_pocket_cap.move(Location((shaft_center_x, horn_arm_length, arm_bottom_z - 0.05)))
-    horn_pocket =horn_pocket + horn_pocket_cap
-    
-    # Hub clearance: full horn hub height above gear cover (Z=16.5..24.0)
-    hub_clearance = Cylinder(
-        radius=horn_hub_outer_radius + 0.3,
-        height=horn_hub_height + 0.1,
-        align=(Align.CENTER, Align.CENTER, Align.MIN),
-    ).move(Location((shaft_center_x, 0, gear_cover_top_z - 0.05)))
-    horn_pocket = horn_pocket + hub_clearance
-    
-    return horn_pocket
+from pantilt_build123d.sg9_servo_horn import make_horn_pocket
 
 if __name__ == "__main__":
     servo1 = SG9Servo(color=Color("blue")) # pan servo
