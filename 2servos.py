@@ -138,7 +138,52 @@ if __name__ == "__main__":
     upper_bearing = upper_bearing + buildup
     upper_bearing.color = Color("yellow")
 
+    # Servo2 bracket — C-clamp around the ear tab only.
+    # Sits on top of the servo2 body (bracket -Z = body top in world Z).
+    # Open at -Y: ear tab slides in from below; M2 screw from -Y threads into +Y wall.
+    wall_t = 2.5
+    s2_bb  = servo2.bounding_box()
+    s2_cx  = (s2_bb.min.X + s2_bb.max.X) / 2
+
+    # Ear tab world extents (SG9Servo defaults, after servo2 rotation)
+    # Original ear z_pos = -body_height/2 + 17 = 5.5 → world Y = -5.5 after rotate(X,90)
+    ear_hole_z = s2_bb.min.Z + servo1.length + 4.0   # world Z of ear hole = 40
+    ear_top_y  = servo1.body_height / 2 - 17 + 1.0   # +Y face of ear tab  = -4.5
+    ear_bot_z  = ear_hole_z - 4.0                     # -Z face of ear = body top = 36
+    ear_top_z  = ear_hole_z + 4.0                     # +Z face of ear = 44
+
+    b_min_y = ear_top_y                               # bracket open at -Y = ear +Y face
+    b_max_y = s2_bb.max.Y + wall_t                    # bracket +Y wall outer face = 14
+    b_min_z = buildup_bottom                          # bracket bottom = top of large cylinder of swivel ring = 14
+    b_max_z = ear_top_z + wall_t                      # bracket top cap outer face = 46.5
+
+    outer = Box(
+        s2_bb.size.X + 2 * wall_t,
+        b_max_y - b_min_y,
+        b_max_z - b_min_z,
+        align=(Align.CENTER, Align.MIN, Align.MIN),
+    ).move(Location((s2_cx, b_min_y, b_min_z)))
+
+    # Ear slot cavity: removes inner material except ±X walls and +Y wall (each wall_t thick)
+    cav_y = b_max_y - b_min_y - wall_t + 1.0         # overshoot -Y by 1 mm for clean boolean
+    cavity = Box(
+        s2_bb.size.X + 0.4,
+        cav_y,
+        ear_bot_z - b_min_z + 0.2,          # cavity stops at body top + clearance
+        align=(Align.CENTER, Align.MIN, Align.MIN),
+    ).move(Location((s2_cx, b_min_y - 1.0, b_min_z)))
+
+    # M2 screw hole in Y, aligned with ear tab hole, threads into +Y wall
+    screw_y_span = b_max_y - b_min_y + 2
+    screw_hole = Cylinder(radius=1.0, height=screw_y_span,
+                          align=(Align.CENTER, Align.CENTER, Align.CENTER))
+    screw_hole = screw_hole.rotate(Axis.X, 90)
+    screw_hole = screw_hole.move(Location((s2_cx, (b_min_y + b_max_y) / 2, ear_hole_z)))
+
+    servo2_bracket = outer - cavity - screw_hole
+    servo2_bracket.color = Color("orange")
+
     show(
-        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn],
+        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket],
         reset_camera=Camera.KEEP,
     )
