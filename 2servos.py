@@ -153,34 +153,57 @@ if __name__ == "__main__":
     ear_top_z  = ear_hole_z + 4.0                     # +Z face of ear = 44
 
     b_min_y = ear_top_y                               # bracket open at -Y = ear +Y face
-    b_max_y = s2_bb.max.Y + wall_t                    # bracket +Y wall outer face = 14
+    b_max_y = s2_bb.max.Y + wall_t                    # lower section +Y wall outer face = 14
     b_min_z = buildup_bottom                          # bracket bottom = top of large cylinder of swivel ring = 14
-    b_max_z = ear_top_z + wall_t                      # bracket top cap outer face = 46.5
+    # Cap thinned from +Z: stop just wall_t above screw hole centre
+    # Cap thinned from +Y: only as deep as 8mm screw + back wall
+    b_max_z     = ear_hole_z + wall_t                 # cap top = screw centre + wall_t = 42.5
+    b_cap_max_y = b_min_y + 8.0 + wall_t             # cap +Y face: 8mm screw depth + wall = 6.0
+    cap_z_start = ear_bot_z + 0.2                     # cap starts just above body top = 36.2
 
-    outer = Box(
+    # Lower section: full Y width, encloses servo2 body from swivel ring top to body top
+    outer_lower = Box(
         s2_bb.size.X + 2 * wall_t,
         b_max_y - b_min_y,
-        b_max_z - b_min_z,
+        cap_z_start - b_min_z,
         align=(Align.CENTER, Align.MIN, Align.MIN),
     ).move(Location((s2_cx, b_min_y, b_min_z)))
 
-    # Ear slot cavity: removes inner material except ±X walls and +Y wall (each wall_t thick)
+    # Cap section: narrower in Y and Z, just enough for the M2 screw
+    outer_cap = Box(
+        s2_bb.size.X + 2 * wall_t,
+        b_cap_max_y - b_min_y,
+        b_max_z - cap_z_start,
+        align=(Align.CENTER, Align.MIN, Align.MIN),
+    ).move(Location((s2_cx, b_min_y, cap_z_start)))
+
+    outer = outer_lower + outer_cap
+
+    # Ear slot cavity: removes inner material of lower section except ±X and +Y walls
     cav_y = b_max_y - b_min_y - wall_t + 1.0         # overshoot -Y by 1 mm for clean boolean
     cavity = Box(
         s2_bb.size.X + 0.4,
         cav_y,
-        ear_bot_z - b_min_z + 0.2,          # cavity stops at body top + clearance
+        cap_z_start - b_min_z,               # matches lower section height exactly
         align=(Align.CENTER, Align.MIN, Align.MIN),
     ).move(Location((s2_cx, b_min_y - 1.0, b_min_z)))
 
-    # M2 screw hole in Y, aligned with ear tab hole, threads into +Y wall
-    screw_y_span = b_max_y - b_min_y + 2
+    # M2 screw hole in Y through the cap, aligned with ear tab hole
+    screw_y_span = b_cap_max_y - b_min_y + 2
     screw_hole = Cylinder(radius=1.0, height=screw_y_span,
                           align=(Align.CENTER, Align.CENTER, Align.CENTER))
     screw_hole = screw_hole.rotate(Axis.X, 90)
-    screw_hole = screw_hole.move(Location((s2_cx, (b_min_y + b_max_y) / 2, ear_hole_z)))
+    screw_hole = screw_hole.move(Location((s2_cx, (b_min_y + b_cap_max_y) / 2, ear_hole_z)))
 
-    servo2_bracket = outer - cavity - screw_hole
+    # Gear cover clearance: bracket rotates with the upper bearing; bore out the same
+    # cylinder used in the upper bearing so the -X wall clears servo1's gear cover.
+    gc_clearance = Cylinder(
+        radius=servo1.gear_cover_clearance_radius + 0.2,
+        height=b_max_z - b_min_z + 0.2,
+        align=(Align.CENTER, Align.CENTER, Align.MIN),
+    ).move(Location((shaft_center_x, 0, b_min_z)))
+
+    servo2_bracket = outer - cavity - screw_hole - gc_clearance
     servo2_bracket.color = Color("orange")
 
     show(
