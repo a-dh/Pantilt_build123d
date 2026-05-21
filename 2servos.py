@@ -235,13 +235,34 @@ if __name__ == "__main__":
     # Servo2 horn: hub points in -Y (servo2 shaft direction), arm extends in +Z
     servo2_gear_cover_top_y = -(servo1.body_height / 2 + servo1.gear_cover_height)  # = -16.5
     horn2 = SG9ServoHorn()
-    horn2 = horn2.rotate(Axis.X, 90)   # +Z hub → -Y, +Y arm → +Z
+    horn2 = horn2.rotate(Axis.X, 90)    # hub → -Y, arm → +Z
+    horn2 = horn2.rotate(Axis.Y, -90)   # arm → -X horizontal
     horn2 = horn2.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
     horn2.color = Color("lightgray")
 
+    # Tilt plate: receives servo2 horn arm in a -Y-face pocket
+    _tb_clr = 0.2
+    tilt_plate_y = horn_arm_thickness + _tb_clr + wall_t  # pocket depth + floor = 5.2 mm
+    horn_arm_neg_y = servo2_gear_cover_top_y - horn_hub_height  # -Y face of horn arm = -24.0
+
+    tb_x_max = s2_cx - 5.0           # +X end: 5 mm from servo2 shaft = 15.2
+    tb_x_min = tb_x_max - 40.0       # -X end = -24.8
+
+    tilt_plate = Box(40, tilt_plate_y, 10,
+                     align=(Align.MIN, Align.MIN, Align.CENTER))
+    tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
+
+    # Horn arm pocket: rectangular slot open at -Y and both X faces, clearing full arm width
+    arm_pocket = Box(41, horn_arm_thickness + _tb_clr, 2 * (horn_hub_outer_radius + _tb_clr),
+                     align=(Align.MIN, Align.MIN, Align.CENTER))
+    arm_pocket = arm_pocket.move(Location((tb_x_min - 0.5, horn_arm_neg_y, shaft_axis_z)))
+
+    tilt_plate = tilt_plate - arm_pocket
+    tilt_plate.color = Color("cyan")
+
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2,
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate,
         names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_swivel_ring",
-               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn"],
+               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate"],
         reset_camera=Camera.KEEP,
     )
