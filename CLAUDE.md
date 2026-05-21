@@ -6,6 +6,10 @@
 2. **X/Y compactness** — minimise the footprint of the assembly in the horizontal plane.
 3. All other constraints below apply within these priorities.
 
+## Coding conventions
+
+- **OCP viewer labels** — every `show()` call must pass a `names` list with one descriptive snake_case label per object. Pass objects as individual positional arguments (not a list) so the viewer maps names correctly. Labels must remain consistent across edits; update them if a shape's role changes.
+
 ## Mechanical design constraints
 
 - **Tilt axis as low as possible** — minimise Z distance between the tilt servo's shaft and the top of servo1's shaft.

@@ -240,6 +240,8 @@ if __name__ == "__main__":
     horn2.color = Color("lightgray")
 
     show(
-        [servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2],
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2,
+        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_swivel_ring",
+               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn"],
         reset_camera=Camera.KEEP,
     )
