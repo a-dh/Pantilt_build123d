@@ -1,6 +1,6 @@
 from pantilt_build123d.sg9_servo import SG9Servo
 from pantilt_build123d.sg9_servo_horn import SG9ServoHorn, SG9ServoHornPocket
-from build123d import Location, Box, Align, Cylinder, RevoluteJoint, RigidJoint
+from build123d import Location, Box, Align, Cylinder, Plane, RevoluteJoint, RigidJoint
 from build123d.geometry import (
     Axis,
     Color,
@@ -246,6 +246,7 @@ if __name__ == "__main__":
     tb_x_max = s2_cx + 5.0           # +X end: 5 mm past servo2 shaft = 25.2
     tb_x_min = tb_x_max - 40.0       # -X end = -24.8
 
+    # Shaft-side tilt plate: receives servo2 horn arm in a -Y-face pocket
     tilt_plate = Box(40, tilt_plate_y, 10,
                      align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
@@ -256,22 +257,6 @@ if __name__ == "__main__":
     arm_pocket = arm_pocket.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
 
     tilt_plate = tilt_plate - arm_pocket
-    tilt_plate.color = Color("cyan")
-
-    # Kinematic joint for the tilt shaft: servo2 drives the tilt plate.
-    servo2_horn_global = servo2.location * servo2.horn_mount
-    tilt_joint = RevoluteJoint(
-        "tilt_shaft",
-        to_part=servo2,
-        axis=Axis(servo2_horn_global.position, (0, 1, 0)),
-        angle_reference=(0, 0, 1),
-    )
-    tilt_plate_joint = RigidJoint(
-        "tilt_plate_rigid",
-        to_part=tilt_plate,
-        joint_location=servo2_horn_global,
-    )
-    tilt_joint.connect_to(tilt_plate_joint, angle=0)
 
     # Counter-shaft tilt plate: mirrors tilt_plate on the +Y side, pivots on counter_shaft_rod
     tilt_plate2 = Box(40, tilt_plate_y, 10,
@@ -286,7 +271,6 @@ if __name__ == "__main__":
         Location((s2_cx, counter_plate_y_start + tilt_plate_y / 2, shaft_axis_z)))
 
     tilt_plate2 = tilt_plate2 - rod_clearance_bore
-    tilt_plate2.color = Color("cyan")
 
     # -X end plate: joins tilt_plate and tilt_plate2 at their -X edges
     tilt_end_plate = Box(tilt_plate_y,
@@ -294,11 +278,35 @@ if __name__ == "__main__":
                          10,
                          align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_end_plate = tilt_end_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
-    tilt_end_plate.color = Color("cyan")
+
+    # Co-printed single piece: both tilt plates joined by the -X end plate (U-yoke)
+    tilt_yoke = tilt_plate + tilt_plate2 + tilt_end_plate
+    tilt_yoke.color = Color("cyan")
+
+    # Kinematic joint for the tilt shaft: servo2 drives the tilt yoke.
+    # tilt_yoke is a boolean union, so its .location is identity and its
+    # geometry lives in world coords. The RigidJoint frame must therefore
+    # match the revolute joint's world frame at angle 0 (axis +Y, reference
+    # +Z) so connect_to leaves the as-built yoke in place instead of
+    # relocating it off both shafts.
+    servo2_horn_global = servo2.location * servo2.horn_mount
+    tilt_joint = RevoluteJoint(
+        "tilt_shaft",
+        to_part=servo2,
+        axis=Axis(servo2_horn_global.position, (0, 1, 0)),
+        angle_reference=(0, 0, 1),
+    )
+    tilt_frame = Plane(origin=servo2_horn_global.position, x_dir=(0, 0, -1), z_dir=(0, 1, 0))
+    tilt_yoke_joint = RigidJoint(
+        "tilt_yoke_rigid",
+        to_part=tilt_yoke,
+        joint_location=Location(tilt_frame),
+    )
+    tilt_joint.connect_to(tilt_yoke_joint, angle=0)
 
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_pan_bracket, horn, rod2, horn2, tilt_plate, tilt_plate2, tilt_end_plate,
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_pan_bracket, horn, rod2, horn2, tilt_yoke,
         names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bracket",
-               "pan_horn", "counter_shaft_rod", "tilt_horn", "tilt_plate", "counter_tilt_plate", "tilt_end_plate"],
+               "pan_horn", "counter_shaft_rod", "tilt_horn", "tilt_yoke"],
         reset_camera=Camera.KEEP,
     )
