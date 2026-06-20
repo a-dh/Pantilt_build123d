@@ -215,17 +215,24 @@ if __name__ == "__main__":
     ).move(Location((shaft_center_x, 0, b_min_z)))
 
     servo2_bracket = outer - cavity - screw_hole - gc_clearance - rod_bore
-    servo2_bracket.color = Color("orange")
 
-    # Counter-shaft rod: 3mm smooth rod seated in boss bore, 4mm proud of boss tip
+    # Co-printed single piece: upper pan swivel bearing + tilt bracket
+    upper_pan_bracket = upper_bearing + servo2_bracket
+    upper_pan_bracket.color = Color("yellow")
+
+    _tb_clr = 0.2
+    tilt_plate_y = horn_arm_thickness + _tb_clr + wall_t   # pocket depth + clearance + back wall = 5.2 mm
+    counter_plate_y_start = b_max_y + boss_len             # inner face of counter-shaft tilt plate, flush with boss tip
+
+    # Counter-shaft rod: extends from servo2 body through boss bore and through counter-shaft tilt plate
     rod2 = Cylinder(radius=rod_d / 2,
-                    height=(b_max_y + boss_len + 4.0) - (s2_bb.max.Y + 0.1),
+                    height=(counter_plate_y_start + tilt_plate_y + 0.5) - (s2_bb.max.Y + 0.1),
                     align=(Align.CENTER, Align.CENTER, Align.MIN))
     rod2 = rod2.rotate(Axis.X, -90)          # axis in +Y
     rod2 = rod2.move(Location((s2_cx, s2_bb.max.Y + 0.1, shaft_axis_z)))
     rod2.color = Color("silver")
 
-    # Servo2 horn: hub points in -Y (servo2 shaft direction), arm extends in +Z
+    # Servo2 horn: hub points in -Y (servo2 shaft direction), arm extends in -X
     servo2_gear_cover_top_y = -(servo1.body_height / 2 + servo1.gear_cover_height)  # = -16.5
     horn2 = SG9ServoHorn()
     horn2 = horn2.rotate(Axis.X, 90)    # hub → -Y, arm → +Z
@@ -234,8 +241,6 @@ if __name__ == "__main__":
     horn2.color = Color("lightgray")
 
     # Tilt plate: receives servo2 horn arm in a -Y-face pocket
-    _tb_clr = 0.2
-    tilt_plate_y = horn_arm_thickness + _tb_clr + wall_t  # pocket depth + floor = 5.2 mm
     horn_arm_neg_y = servo2_gear_cover_top_y - horn_hub_height  # -Y face of horn arm = -24.0
 
     tb_x_max = s2_cx + 5.0           # +X end: 5 mm past servo2 shaft = 25.2
@@ -245,7 +250,7 @@ if __name__ == "__main__":
                      align=(Align.MIN, Align.MIN, Align.CENTER))
     tilt_plate = tilt_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
 
-    arm_pocket = SG9ServoHornPocket(SG9ServoHorn(), clearance=0.2, extra_depth=0.2)
+    arm_pocket = SG9ServoHornPocket(SG9ServoHorn(), clearance=0.2, extra_depth=0.4)
     arm_pocket = arm_pocket.rotate(Axis.X, 90)    # hub → -Y, arm → +Z
     arm_pocket = arm_pocket.rotate(Axis.Y, -90)   # arm → -X horizontal
     arm_pocket = arm_pocket.move(Location((s2_cx, servo2_gear_cover_top_y, shaft_axis_z)))
@@ -268,9 +273,32 @@ if __name__ == "__main__":
     )
     tilt_joint.connect_to(tilt_plate_joint, angle=0)
 
+    # Counter-shaft tilt plate: mirrors tilt_plate on the +Y side, pivots on counter_shaft_rod
+    tilt_plate2 = Box(40, tilt_plate_y, 10,
+                      align=(Align.MIN, Align.MIN, Align.CENTER))
+    tilt_plate2 = tilt_plate2.move(Location((tb_x_min, counter_plate_y_start, shaft_axis_z)))
+
+    rod_clearance_bore = Cylinder(radius=rod_d / 2 + 0.2,
+                                  height=tilt_plate_y + 1.0,
+                                  align=(Align.CENTER, Align.CENTER, Align.CENTER))
+    rod_clearance_bore = rod_clearance_bore.rotate(Axis.X, 90)   # bore axis in +Y
+    rod_clearance_bore = rod_clearance_bore.move(
+        Location((s2_cx, counter_plate_y_start + tilt_plate_y / 2, shaft_axis_z)))
+
+    tilt_plate2 = tilt_plate2 - rod_clearance_bore
+    tilt_plate2.color = Color("cyan")
+
+    # -X end plate: joins tilt_plate and tilt_plate2 at their -X edges
+    tilt_end_plate = Box(tilt_plate_y,
+                         counter_plate_y_start + tilt_plate_y - horn_arm_neg_y,
+                         10,
+                         align=(Align.MIN, Align.MIN, Align.CENTER))
+    tilt_end_plate = tilt_end_plate.move(Location((tb_x_min, horn_arm_neg_y, shaft_axis_z)))
+    tilt_end_plate.color = Color("cyan")
+
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_bearing, horn, servo2_bracket, rod2, horn2, tilt_plate,
-        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bearing",
-               "pan_horn", "tilt_bracket", "counter_shaft_rod", "tilt_horn", "tilt_plate"],
+        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_pan_bracket, horn, rod2, horn2, tilt_plate, tilt_plate2, tilt_end_plate,
+        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bracket",
+               "pan_horn", "counter_shaft_rod", "tilt_horn", "tilt_plate", "counter_tilt_plate", "tilt_end_plate"],
         reset_camera=Camera.KEEP,
     )
