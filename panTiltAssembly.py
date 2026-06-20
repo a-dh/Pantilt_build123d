@@ -10,7 +10,19 @@ import copy
 
 from ocp_vscode import show
 
-if __name__ == "__main__":
+
+def build_assembly():
+    """Build the full pan-tilt assembly.
+
+    Returns a dict so both the static viewer (``__main__`` below) and
+    animate_joints.py can use the same geometry:
+
+      - ``parts``: ordered name -> Part (in show() order)
+      - ``pan_center`` / ``tilt_center``: points on the pan (+Z) and tilt (+Y)
+        rotation axes, for animating the parts
+      - ``panned``: names of parts that rotate with the pan axis
+      - ``tilted``: names of parts that additionally rotate with the tilt axis
+    """
     servo1 = SG9Servo(color=Color("blue")) # pan servo
     top_of_shaft = servo1.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
@@ -304,9 +316,34 @@ if __name__ == "__main__":
     )
     tilt_joint.connect_to(tilt_yoke_joint, angle=0)
 
+    parts = {
+        "pan_servo": servo1,
+        "tilt_servo": servo2,
+        "host_plate": mounting_plate_on_host,
+        "pan_static_bearing": pan_static_bearing,
+        "upper_pan_bracket": upper_pan_bracket,
+        "pan_horn": horn,
+        "counter_shaft_rod": rod2,
+        "tilt_horn": horn2,
+        "tilt_yoke": tilt_yoke,
+    }
+    return {
+        "parts": parts,
+        "pan_center": pan_shaft_location.position,
+        "tilt_center": servo2_horn_global.position,
+        # Everything above the pan bearing turns with the pan axis...
+        "panned": ["upper_pan_bracket", "tilt_servo", "pan_horn",
+                   "counter_shaft_rod", "tilt_horn", "tilt_yoke"],
+        # ...and the yoke plus servo2's own horn additionally turn with tilt.
+        "tilted": ["tilt_horn", "tilt_yoke"],
+    }
+
+
+if __name__ == "__main__":
+    assembly = build_assembly()
+    parts = assembly["parts"]
     show(
-        servo1, servo2, mounting_plate_on_host, pan_static_bearing, upper_pan_bracket, horn, rod2, horn2, tilt_yoke,
-        names=["pan_servo", "tilt_servo", "host_plate", "pan_static_bearing", "upper_pan_bracket",
-               "pan_horn", "counter_shaft_rod", "tilt_horn", "tilt_yoke"],
+        *parts.values(),
+        names=list(parts.keys()),
         reset_camera=Camera.KEEP,
     )
