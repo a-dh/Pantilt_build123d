@@ -26,6 +26,7 @@ def build_scene():
         to_part=servo1,
         axis=pan_axis,
         angle_reference=(1, 0, 0),
+        angular_range=(-90, 90),
     )
 
     upper_bearing = Cylinder(radius=6, height=2.5, align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -51,6 +52,7 @@ def build_scene():
         to_part=servo2,
         axis=tilt_axis,
         angle_reference=(0, 0, 1),
+        angular_range=(-15, 90),
     )
 
     tilt_plate = Box(10, 3, 10, align=(Align.CENTER, Align.MIN, Align.CENTER))
@@ -67,25 +69,51 @@ def build_scene():
     return servo1, servo2, upper_bearing, tilt_plate, pan_joint, upper_bearing_joint, servo2_rigid, tilt_joint, tilt_plate_joint
 
 
+def ping_pong(lo, hi, step):
+    """One oscillation cycle lo -> hi -> lo as a list of angles.
+
+    Steps by ``step`` and always lands on ``hi`` (a final short step is used
+    if the range isn't an exact multiple of ``step``). The turnaround
+    endpoints (lo and hi) are not duplicated, so the list can be looped
+    seamlessly to repeat the cycle.
+    """
+    up = list(range(lo, hi + 1, step))
+    if up[-1] != hi:
+        up.append(hi)
+    down = up[-2:0:-1]          # hi-step ... lo+step (exclude both endpoints)
+    return up + down
+
+
 def animate():
     servo1, servo2, upper_bearing, tilt_plate, pan_joint, upper_bearing_joint, servo2_rigid, tilt_joint, tilt_plate_joint = build_scene()
 
-    for pan_angle in [0, 45, 90, 135, 180, 225, 270, 315, 360]:
+    # Both axes step by 30 deg and move together each frame. The pan axis
+    # oscillates -90..+90 and the tilt axis -15..+90; the loop runs for two
+    # full pan cycles, with tilt oscillating concurrently on its own period.
+    pan_cycle = ping_pong(-90, 90, 30)
+    tilt_cycle = ping_pong(-15, 90, 30)
+
+    pan_cycles = 2
+    total_frames = pan_cycles * len(pan_cycle)
+
+    for frame in range(total_frames):
+        pan_angle = pan_cycle[frame % len(pan_cycle)]
+        tilt_angle = tilt_cycle[frame % len(tilt_cycle)]
+
         pan_joint.connect_to(upper_bearing_joint, angle=pan_angle)
         upper_bearing_joint.connect_to(servo2_rigid, angle=0)
-        for tilt_angle in [0, 15, 30, 45, 30, 15, 0]:
-            tilt_joint.connect_to(tilt_plate_joint, angle=tilt_angle)
-            show(
-                servo1,
-                servo2,
-                upper_bearing,
-                tilt_plate,
-                render_joints=True,
-                tab="joint_animation",
-                reset_camera=Camera.KEEP,
-                names=["pan_servo", "tilt_servo", "upper_bearing", "tilt_plate"],
-            )
-            sleep(0.2)
+        tilt_joint.connect_to(tilt_plate_joint, angle=tilt_angle)
+        show(
+            servo1,
+            servo2,
+            upper_bearing,
+            tilt_plate,
+            render_joints=True,
+            tab="joint_animation",
+            reset_camera=Camera.KEEP,
+            names=["pan_servo", "tilt_servo", "upper_bearing", "tilt_plate"],
+        )
+        sleep(0.2)
 
 
 if __name__ == "__main__":
