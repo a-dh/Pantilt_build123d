@@ -1,6 +1,5 @@
 from time import sleep
 
-from build123d import Location, Rotation
 from ocp_vscode import show
 from ocp_vscode.config import Camera
 
@@ -22,20 +21,16 @@ def ping_pong(lo, hi, step):
     return up + down
 
 
-def rotation_about(center, rx, ry, rz):
-    """Location that rotates by the given Euler angles about ``center``."""
-    return Location(center) * Rotation(rx, ry, rz) * Location(-center)
-
-
 def animate():
     asm = build_assembly()
     parts = asm["parts"]
-    pan_center = asm["pan_center"]
-    tilt_center = asm["tilt_center"]
-    panned = set(asm["panned"])
-    tilted = set(asm["tilted"])
+    pan_joint = asm["pan_joint"]
+    tilt_joint = asm["tilt_joint"]
+    pan_rigid_joints = asm["pan_rigid_joints"]
+    tilt_rigid_joints = asm["tilt_rigid_joints"]
 
     names = list(parts.keys())
+    show_parts = list(parts.values())
 
     # Both axes step by 30 deg and move together each frame. The pan axis
     # oscillates -90..+90 and the tilt axis -15..+90; the loop runs for two
@@ -50,24 +45,17 @@ def animate():
         pan_angle = pan_cycle[frame % len(pan_cycle)]
         tilt_angle = tilt_cycle[frame % len(tilt_cycle)]
 
-        pan_rot = rotation_about(pan_center, 0, 0, pan_angle)    # about +Z
-        tilt_rot = rotation_about(tilt_center, 0, tilt_angle, 0)  # about +Y
-
-        posed = []
-        for name, part in parts.items():
-            if name in tilted:
-                # Tilt first (in the base frame), then carry through the pan.
-                located = pan_rot * tilt_rot * part
-            elif name in panned:
-                located = pan_rot * part
-            else:
-                located = part
-            located.color = part.color
-            posed.append(located)
+        # Pan first so servo2 (which carries the tilt joint) is repositioned,
+        # then tilt places the yoke and tilt horn relative to the panned servo2.
+        for rj in pan_rigid_joints:
+            pan_joint.connect_to(rj, angle=pan_angle)
+        for rj in tilt_rigid_joints:
+            tilt_joint.connect_to(rj, angle=tilt_angle)
 
         show(
-            *posed,
+            *show_parts,
             names=names,
+            render_joints=True,
             tab="joint_animation",
             reset_camera=Camera.KEEP,
         )

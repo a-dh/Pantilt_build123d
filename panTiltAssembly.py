@@ -80,21 +80,6 @@ def build_assembly():
     ).move(Location((shaft_center_x, 0, upper_bearing_z)))
     upper_bearing = upper_bearing - upper_bearing_inner
 
-    # Kinematic joint for the pan shaft: servo1 drives the upper bearing.
-    pan_shaft_location = Location(servo1.horn_mount.position)
-    pan_joint = RevoluteJoint(
-        "pan_shaft",
-        to_part=servo1,
-        axis=Axis(pan_shaft_location.position, (0, 0, 1)),
-        angle_reference=(1, 0, 0),
-    )
-    upper_bearing_joint = RigidJoint(
-        "upper_bearing_rigid",
-        to_part=upper_bearing,
-        joint_location=pan_shaft_location,
-    )
-    pan_joint.connect_to(upper_bearing_joint, angle=0)
-
     # Snap servo2 bottom face onto upper_bearing top face
     ub_top_z = upper_bearing.faces().filter_by(Axis.Z).sort_by(Axis.Z)[-1].center().Z
     s2_bot_z = servo2.faces().filter_by(Axis.Z).sort_by(Axis.Z)[0].center().Z
@@ -295,26 +280,48 @@ def build_assembly():
     tilt_yoke = tilt_plate + tilt_plate2 + tilt_end_plate
     tilt_yoke.color = Color("cyan")
 
-    # Kinematic joint for the tilt shaft: servo2 drives the tilt yoke.
-    # tilt_yoke is a boolean union, so its .location is identity and its
-    # geometry lives in world coords. The RigidJoint frame must therefore
-    # match the revolute joint's world frame at angle 0 (axis +Y, reference
-    # +Z) so connect_to leaves the as-built yoke in place instead of
-    # relocating it off both shafts.
+    # ---- Kinematic joints ---------------------------------------------------
+    # Pan: servo1's shaft turns everything above the pan bearing about +Z.
+    # Tilt: servo2's shaft turns the yoke (and servo2's own horn) about +Y. The
+    # tilt joint rides on servo2 (itself a pan part), so the tilt parts inherit
+    # the pan rotation automatically.
+    #
+    # Each driven part gets a RigidJoint anchored at its revolute joint's own
+    # world frame (joint.location = parent.location * relative_axis.location).
+    # Using the joint's own frame -- rather than a hand-built one -- guarantees
+    # connect_to(angle=0) is a no-op (parts stay as-built) and connect_to(angle)
+    # cleanly rotates the part about the axis, even though servo2 (the tilt
+    # parent) sits in a rotated location.
+    pan_axis = Axis(servo1.horn_mount.position, (0, 0, 1))
+    pan_joint = RevoluteJoint(
+        "pan_shaft", to_part=servo1, axis=pan_axis, angular_range=(-360, 360)
+    )
+    pan_parts = {
+        "upper_pan_bracket": upper_pan_bracket,
+        "tilt_servo": servo2,
+        "pan_horn": horn,
+        "counter_shaft_rod": rod2,
+    }
+    pan_rigid_joints = []
+    for name, part in pan_parts.items():
+        rj = RigidJoint(f"{name}_pan", to_part=part, joint_location=pan_joint.location)
+        pan_joint.connect_to(rj, angle=0)
+        pan_rigid_joints.append(rj)
+
     servo2_horn_global = servo2.location * servo2.horn_mount
+    tilt_axis = Axis(servo2_horn_global.position, (0, 1, 0))
     tilt_joint = RevoluteJoint(
-        "tilt_shaft",
-        to_part=servo2,
-        axis=Axis(servo2_horn_global.position, (0, 1, 0)),
-        angle_reference=(0, 0, 1),
+        "tilt_shaft", to_part=servo2, axis=tilt_axis, angular_range=(-90, 90)
     )
-    tilt_frame = Plane(origin=servo2_horn_global.position, x_dir=(0, 0, -1), z_dir=(0, 1, 0))
-    tilt_yoke_joint = RigidJoint(
-        "tilt_yoke_rigid",
-        to_part=tilt_yoke,
-        joint_location=Location(tilt_frame),
-    )
-    tilt_joint.connect_to(tilt_yoke_joint, angle=0)
+    tilt_parts = {
+        "tilt_yoke": tilt_yoke,
+        "tilt_horn": horn2,
+    }
+    tilt_rigid_joints = []
+    for name, part in tilt_parts.items():
+        rj = RigidJoint(f"{name}_tilt", to_part=part, joint_location=tilt_joint.location)
+        tilt_joint.connect_to(rj, angle=0)
+        tilt_rigid_joints.append(rj)
 
     parts = {
         "pan_servo": servo1,
@@ -329,13 +336,11 @@ def build_assembly():
     }
     return {
         "parts": parts,
-        "pan_center": pan_shaft_location.position,
-        "tilt_center": servo2_horn_global.position,
-        # Everything above the pan bearing turns with the pan axis...
-        "panned": ["upper_pan_bracket", "tilt_servo", "pan_horn",
-                   "counter_shaft_rod", "tilt_horn", "tilt_yoke"],
-        # ...and the yoke plus servo2's own horn additionally turn with tilt.
-        "tilted": ["tilt_horn", "tilt_yoke"],
+        "pan_joint": pan_joint,
+        "tilt_joint": tilt_joint,
+        # Re-connect these each animation frame: pan first, then tilt.
+        "pan_rigid_joints": pan_rigid_joints,
+        "tilt_rigid_joints": tilt_rigid_joints,
     }
 
 
