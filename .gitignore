@@ -40,6 +40,11 @@ htmlcov/
 *.stl
 *.brep
 
+# --- Generated outputs (regenerable via scripts) ---
+videos/
+pantilt_description/
+*.mp4
+
 # --- Logs ---
 *.log
 

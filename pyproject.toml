@@ -15,7 +15,8 @@ authors = [
 
 dependencies = [
     "build123d>=0.4.0",
-    "ocp_vscode"
+    "ocp_vscode",
+    "matplotlib"
 ]
 
 [tool.setuptools.packages.find]
