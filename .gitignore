@@ -38,6 +38,7 @@ htmlcov/
 *.iges
 *.igs
 *.stl
+*.3mf
 *.brep
 
 # --- Generated outputs (regenerable via scripts) ---
