@@ -12,7 +12,7 @@ counter-shaft), and co-printed structural parts.
 |---|---|
 | `src/pantilt_build123d/pan_tilt_assembly.py` | Builds the full assembly. `build_assembly()` returns the parts and kinematic joints; running it directly shows the model in the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer). |
 | `animate_joints.py` | Drives the assembly through a synchronized pan/tilt sweep in the viewer (joint-driven). |
-| `render_video.py` | Renders the pan/tilt motion to headless MP4 clips (opaque + transparent) via matplotlib + ffmpeg. |
+| `render_video.py` | Renders the pan/tilt motion to headless MP4 clips (opaque + transparent) via VTK + ffmpeg. |
 | `export_ros2.py` | Exports a tf-compatible ROS2 description (URDF + STL meshes). |
 | `export_parts.py` | Exports the printed parts (STEP / 3MF / STL) in design orientation for slicing. |
 
