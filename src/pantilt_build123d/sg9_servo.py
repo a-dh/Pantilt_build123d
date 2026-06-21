@@ -16,6 +16,9 @@ class SG9Servo(Part):
         ear_height_pos=17,
         ear_hole_dia=2,
         ear_hole_offset=4,
+        cable_pitch=1.27,
+        cable_conductor_dia=1.2,
+        cable_stub_length=10.0,
         color=Color("lightgray"),
         left_mount=True,
         right_mount=True,
@@ -110,9 +113,28 @@ class SG9Servo(Part):
 
         self.top_of_gear_cover_face = final_gear_cover.faces().filter_by(Axis.Z, 1).sort_by(Axis.Z)[-1]
 
+        # --- Cable stub: 3-conductor ribbon, 0.05" (1.27 mm) pitch ---
+        # Exits the shaft-end (+X) face, 2 mm up from the base bottom, centred
+        # across the body width. A short stub for visualisation; each conductor
+        # embeds 1 mm into the body so the union is clean.
+        cable_embed = 1.0
+        cable_z = -servo_height / 2 + 2.0
+        cable_face_x = servo_length / 2
+        cable_conductor_len = cable_stub_length + cable_embed
+        cable_center_x = cable_face_x + (cable_stub_length - cable_embed) / 2
+        cable_conductors = []
+        for offset in (-cable_pitch, 0.0, cable_pitch):
+            conductor = Cylinder(radius=cable_conductor_dia / 2, height=cable_conductor_len)
+            conductor = conductor.rotate(Axis.Y, 90)          # lay the stub along +X
+            conductor = Pos(cable_center_x, offset, cable_z) * conductor
+            cable_conductors.append(conductor)
+        self.cable = Compound(children=cable_conductors)
+
         # --- Assembly and Finishing ---
         servo_shape = self.body + shaft_base + spline + self.final_gear_cover + self.penultimate_gear_cover + self.left_mount + self.right_mount
         servo_shape -= screw_hole
+        for conductor in cable_conductors:
+            servo_shape += conductor
 
         # Initialize the Part with the constructed shape
         super().__init__(servo_shape.wrapped, **kwargs)
