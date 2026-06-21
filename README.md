@@ -6,6 +6,23 @@ A two-axis (pan + tilt) servo mount built around SG90-class hobby servos, with a
 360° continuous pan stage, a dual-supported tilt yoke (driven shaft + collinear
 counter-shaft), and co-printed structural parts.
 
+![Pan-tilt assembly](docs/media/pantilt_hero.png)
+
+## Preview
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/media/pantilt_opaque.gif" width="100%"><br><sub>opaque</sub></td>
+    <td align="center"><img src="docs/media/pantilt_transparent.gif" width="100%"><br><sub>see-through</sub></td>
+  </tr>
+</table>
+
+Headless VTK render (1280×960) sweeping the joint limits — pan −90…+90°, tilt
+−15…+90°. Full-quality MP4:
+[opaque](https://github.com/a-dh/Pantilt_build123d/releases/download/v0.1.0/pantilt_opaque.mp4)
+·
+[see-through](https://github.com/a-dh/Pantilt_build123d/releases/download/v0.1.0/pantilt_transparent.mp4).
+
 ## Scripts
 
 | Script | What it does |
@@ -13,6 +30,7 @@ counter-shaft), and co-printed structural parts.
 | `src/pantilt_build123d/pan_tilt_assembly.py` | Builds the full assembly. `build_assembly()` returns the parts and kinematic joints; running it directly shows the model in the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer). |
 | `animate_joints.py` | Drives the assembly through a synchronized pan/tilt sweep in the viewer (joint-driven). |
 | `render_video.py` | Renders the pan/tilt motion to headless MP4 clips (opaque + transparent) via VTK + ffmpeg. |
+| `make_media.py` | Derives the README preview assets (`docs/media/` GIFs + hero PNG) from the rendered MP4s via ffmpeg. |
 | `export_ros2.py` | Exports a tf-compatible ROS2 description (URDF + STL meshes). |
 | `export_parts.py` | Exports the printed parts (STEP / 3MF / STL) in design orientation for slicing. |
 
@@ -20,6 +38,7 @@ counter-shaft), and co-printed structural parts.
 python -m pantilt_build123d.pan_tilt_assembly   # static view
 python animate_joints.py      # animated view
 python render_video.py        # MP4 clips -> ./videos  (QUICK=1 for a fast smoke test)
+python make_media.py          # preview GIFs + hero PNG -> ./docs/media
 python export_ros2.py         # ROS2 export -> ./pantilt_description
 python export_parts.py        # printed parts -> ./export
 ```
@@ -88,4 +107,5 @@ pip install -e .
 CAD exports (`*.stl`, `*.step`, `*.3mf`) and rendered videos (`videos/`,
 `*.mp4`), along with the ROS2 description (`pantilt_description/`), are
 regenerable artifacts and are git-ignored; rerun the relevant export/render
-script to recreate them.
+script to recreate them. The committed README preview assets in `docs/media/`
+are regenerated with `python make_media.py` (after `render_video.py`).
