@@ -26,7 +26,7 @@ import numpy as np
 import ocp_vscode
 ocp_vscode.show = lambda *a, **k: None  # never open the viewer from here
 
-from panTiltAssembly import build_assembly
+from pantilt_build123d.pan_tilt_assembly import build_assembly
 
 DURATION_S = 5.0
 FPS = 24

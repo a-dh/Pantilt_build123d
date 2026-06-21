@@ -3,7 +3,7 @@ from time import sleep
 from ocp_vscode import show
 from ocp_vscode.config import Camera
 
-from panTiltAssembly import build_assembly
+from pantilt_build123d.pan_tilt_assembly import build_assembly
 
 
 def ping_pong(lo, hi, step):

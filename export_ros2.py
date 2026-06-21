@@ -34,7 +34,7 @@ from xml.etree import ElementTree as ET
 
 from build123d import Compound, Pos, export_stl
 
-from panTiltAssembly import build_assembly
+from pantilt_build123d.pan_tilt_assembly import build_assembly
 
 MM_TO_M = 0.001
 PACKAGE = "pantilt_description"

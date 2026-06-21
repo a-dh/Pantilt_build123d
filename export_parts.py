@@ -25,7 +25,7 @@ import sys
 
 from build123d import Mesher, Unit, export_step, export_stl
 
-from panTiltAssembly import build_assembly
+from pantilt_build123d.pan_tilt_assembly import build_assembly
 
 # Parts produced on the printer. Everything else in the assembly is bought.
 PRINTED_PARTS = ("host_plate", "pan_static_bearing", "upper_pan_bracket", "tilt_yoke")

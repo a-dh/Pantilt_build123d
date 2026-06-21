@@ -10,12 +10,12 @@ counter-shaft), and co-printed structural parts.
 
 | Script | What it does |
 |---|---|
-| `panTiltAssembly.py` | Builds the full assembly. `build_assembly()` returns the parts and kinematic joints; running it directly shows the model in the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer). |
+| `src/pantilt_build123d/pan_tilt_assembly.py` | Builds the full assembly. `build_assembly()` returns the parts and kinematic joints; running it directly shows the model in the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer). |
 | `animate_joints.py` | Drives the assembly through a synchronized pan/tilt sweep in the viewer (joint-driven). |
 | `export_ros2.py` | Exports a tf-compatible ROS2 description (URDF + STL meshes). |
 
 ```bash
-python panTiltAssembly.py     # static view
+python -m pantilt_build123d.pan_tilt_assembly   # static view
 python animate_joints.py      # animated view
 python export_ros2.py         # ROS2 export -> ./pantilt_description
 ```
